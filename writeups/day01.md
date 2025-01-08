@@ -2,9 +2,9 @@
 
 [Full solution](../src/days/day01.zig).
 
-## Part 1
+## Part one
 
-We're asked to find the **total distances** from two lists of location IDs that are placed side-by-side in our puzzle input, which looks like:
+We're asked to find the **total distance** from two lists of location IDs that are placed side-by-side in our puzzle input, which looks like:
 
 ```
 3   4
@@ -47,25 +47,23 @@ fn Day01(comptime length: usize) type {
 }
 ```
 
-We'll sort the arrays in the parsing function in case both parts needed them sorted. Next we'll iterate over both arrays, calculate the absolute difference of each pair, and sum them all up to get the answer for part 1.
+We'll sort the arrays in the parsing function in case both parts needed them sorted. Next we'll iterate over both arrays, calculate the absolute difference of each pair, and sum them all up to get the answer for part one.
 
 ```zig
 fn part1(self: Self) u64 {
     var result: u64 = 0;
-
     for (self.left, self.right) |x, y| {
         result += @intCast(@abs(@as(i64, x) - y));
     }
-
     return result;
 }
 ```
 
-## Part 2
+## Part two
 
-For part 2, we're asked for the **similarity score**, which is the sum of each number (location ID) in the left list multiplied by its frequency in the right list. In other words, we have to count how many times a number in the left list appears in the right list.
+For part two, we're asked for the **similarity score**, which is the sum of each number (location ID) in the left list multiplied by its frequency in the right list. In other words, we have to count how many times a number in the left list appears in the right list.
 
-We can do this with a hashmap, e.g. Zig's `std.AutoHashmap`, but since the location IDs have at most 5 digits, I decided to use a regular array instead. `std.AutoHashmap` does dynamic allocation, which will slow down our solution a bit (though the difference is negligible in day 1).
+We can do this with a hashmap, e.g. Zig's `std.AutoHashmap`, but since the location IDs have at most 5 digits (from inspecting the input file) we can just use a regular array. `std.AutoHashmap` does dynamic allocation, which will slow down our solution a bit, though the difference is negligible in day one.
 
 ```zig
 fn part2(self: Self) u64 {
@@ -73,16 +71,14 @@ fn part2(self: Self) u64 {
     for (self.right) |id| {
         frequencies[id] += 1;
     }
-
     var result: u64 = 0;
     for (self.left) |id| {
         result += id * frequencies[id];
     }
-
     return result;
 }
 ```
 
-Once we have the frequencies in the array, we can iterate over each number in the `left` array and calculate the similarity score. Sum it all up to get the answer for part 2.
+Once we have the frequencies in the array, we can iterate over each number in the `left` array and calculate the similarity score. Sum it all up to get the answer for part two.
 
 ## Benchmarks

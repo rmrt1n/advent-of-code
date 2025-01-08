@@ -12,8 +12,8 @@ pub fn main() !void {
     for (1..(iterations + 1)) |i| {
         const results = try puzzle.run(allocator, false);
         mean_results[0] += (to_f32(results[0]) - mean_results[0]) / to_f32(i);
-        mean_results[1] += (to_f32(results[1]) - mean_results[1]) / to_f32(i);
-        mean_results[2] += (to_f32(results[2]) - mean_results[2]) / to_f32(i);
+        mean_results[1] += (to_f32(results[1] - results[0]) - mean_results[1]) / to_f32(i);
+        mean_results[2] += (to_f32(results[2] - results[1]) - mean_results[2]) / to_f32(i);
     }
 
     const total_time = mean_results[0] + mean_results[1] + mean_results[2];

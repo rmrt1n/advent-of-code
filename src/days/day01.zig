@@ -26,11 +26,9 @@ fn Day01(comptime length: usize) type {
 
         fn part1(self: Self) u64 {
             var result: u64 = 0;
-
             for (self.left, self.right) |x, y| {
                 result += @intCast(@abs(@as(i64, x) - y));
             }
-
             return result;
         }
 
@@ -39,12 +37,10 @@ fn Day01(comptime length: usize) type {
             for (self.right) |id| {
                 frequencies[id] += 1;
             }
-
             var result: u64 = 0;
             for (self.left) |id| {
                 result += id * frequencies[id];
             }
-
             return result;
         }
     };
@@ -68,7 +64,6 @@ pub fn run(_: std.mem.Allocator, is_run: bool) ![3]u64 {
     if (is_run) {
         std.debug.print("Part 1: {d}\nPart 2: {d}\n", .{ result1, result2 });
     }
-
     return .{ time0, time1, time2 };
 }
 
