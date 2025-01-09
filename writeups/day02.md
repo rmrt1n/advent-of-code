@@ -15,8 +15,8 @@ For day two we're given a list of reports, where each report is a list of levels
 
 The task for part one is to count the number of **safe levels**. A level is safe if it satisfies two properties:
 
-1. The levels are either all increasing or all decreasing, and
-2. Any two adjacent levels differ by at least one and at most three
+1. The levels are either all increasing or all decreasing.
+2. Any two adjacent levels differ by at least one and at most three.
 
 We'll start by parsing the input. Reports can have different numbers of levels. To parse each report, we can use Zig's `std.ArrayList` which is similar to vector types in other languages (not to be confused with SIMD vector types). Since we're avoiding dynamic allocations unless it's necessary, we'll not use `std.ArrayList` and instead we'll store it in another way.
 
