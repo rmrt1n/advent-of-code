@@ -77,13 +77,13 @@ const sample_input =
 ;
 
 test "day 01 part 1 sample 1" {
-    const puzzle = try Day01(6).init(sample_input, std.testing.allocator);
+    const puzzle = try Day01(6).init(sample_input);
     const result = puzzle.part1();
     try std.testing.expectEqual(11, result);
 }
 
 test "day 01 part 2 sample 1" {
-    const puzzle = try Day01(6).init(sample_input, std.testing.allocator);
+    const puzzle = try Day01(6).init(sample_input);
     const result = puzzle.part2();
     try std.testing.expectEqual(31, result);
 }

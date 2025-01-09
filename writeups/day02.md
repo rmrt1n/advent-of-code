@@ -2,12 +2,23 @@
 
 ## Part one
 
-For day two we're given a list of reports, where each report is a list of levels separated by a space. The task for part one is to count the number of **safe levels**. A level is safe if it satisfies two properties:
+For day two we're given a list of reports, where each report is a list of levels separated by a space:
+
+```
+7 6 4 2 1
+1 2 7 8 9
+9 7 6 2 1
+1 3 2 4 5
+8 6 4 4 1
+1 3 6 7 9
+```
+
+The task for part one is to count the number of **safe levels**. A level is safe if it satisfies two properties:
 
 1. The levels are either all increasing or all decreasing, and
 2. Any two adjacent levels differ by at least one and at most three
 
-We'll start by parsing the input. Reports can have different numbers of levels. To parse each report, we can use Zig's `std.ArrayList` which is similar to vector types in other languages (not to be confused with SIMD vector types). Since we're avoiding dynamic allocations unless it's necessary, we'll not be using `std.ArrayList` and instead we'll be using another technique.
+We'll start by parsing the input. Reports can have different numbers of levels. To parse each report, we can use Zig's `std.ArrayList` which is similar to vector types in other languages (not to be confused with SIMD vector types). Since we're avoiding dynamic allocations unless it's necessary, we'll not use `std.ArrayList` and instead we'll store it in another way.
 
 In the case of my input, the number of levels range between five and eight. Because the max number of levels is known, we can use regular arrays to store them with length prefixes. Each report will be parsed into an array with a capacity of at least N+1, where N is the max number of levels. Then, we'll store the count of the levels in the first element, and store the levels in the rest of the array.
 
@@ -50,7 +61,7 @@ fn Day02(comptime length: usize) type {
 }
 ```
 
-Next, we'll need a function to check whether a given report is safe following the two rules outline earlier.
+Here I used 10 as the array size (because it looks better), but nine works as well. Next, we'll need a function to check whether a given report is safe following the two rules outline earlier.
 
 ```zig
 fn is_valid_report(report: []const u8) bool {
@@ -59,14 +70,14 @@ fn is_valid_report(report: []const u8) bool {
         const larger = if (is_increasing) report[i + 1] else report[i];
         const lesser = if (is_increasing) report[i] else report[i + 1];
 
-        const diff: i16 = larger - lesser;
+        const diff = @as(i16, larger) - lesser;
         if (diff < 1 or diff > 3) return false;
     }
     return true;
 }
 ```
 
-We determine if the levels should be in increasing or decreasing order by checking the first two elements. If it's increasing, the "right" level (`report[i + 1]`) must be larger than the "left" level (`report[i]`). We then check the difference between these two numbers. If the difference is negative, it means that the order is wrong so we return false. If the difference is not between one and three, it is also wrong and we return false.
+We determine if the levels should be in increasing or decreasing order by checking the first two elements. If it's increasing, the "right" level (`report[i + 1]`) must be larger than the "left" level (`report[i]`), and vice versa. Next, we calculate the difference between these two numbers. If the difference is negative, it means that the order is wrong so we return false. If the difference is not between one and three, it is also wrong and we return false.
 
 With this, we can iterate over all the reports and count the number of safe reports to get the answer for part one.
 
@@ -80,7 +91,7 @@ fn part1(self: Self) u64 {
 }
 ```
 
-A slight optimization here is to remove branch (the if check) inside the for loop by casting the return value into an integer, one for true and zero for false.
+A slight optimization here is to remove branch (the if check) inside the for loop by casting the return value into an integer, one for true and zero for false. The part one solution now becomes:
 
 ```zig
 fn part1(self: Self) u64 {
@@ -111,7 +122,7 @@ fn part2(self: Self) u64 {
         for (1..report[0]) |i| {
             var dampened = report;
             dampened[0] = report[0] - 1;
-            @memcpy(dampened[i..], report[(i + 1)..]);
+            @memcpy(dampened[i..9], report[(i + 1)..]);
 
             if (is_valid_report(&dampened)) {
                 result += 1;

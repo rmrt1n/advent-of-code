@@ -41,7 +41,7 @@ fn Day02(comptime length: usize) type {
                 for (1..report[0]) |i| {
                     var dampened = report;
                     dampened[0] = report[0] - 1;
-                    @memcpy(dampened[i..], report[(i + 1)..]);
+                    @memcpy(dampened[i..9], report[(i + 1)..]);
 
                     if (is_valid_report(&dampened)) {
                         result += 1;
@@ -58,7 +58,7 @@ fn Day02(comptime length: usize) type {
                 const larger = if (is_increasing) report[i + 1] else report[i];
                 const lesser = if (is_increasing) report[i] else report[i + 1];
 
-                const diff: i16 = larger - lesser;
+                const diff = @as(i16, larger) - lesser;
                 if (diff < 1 or diff > 3) return false;
             }
             return true;
