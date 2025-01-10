@@ -1,8 +1,10 @@
 # Day 03: Mull it Over
 
+[Full solution](../src/days/day03.zig).
+
 ## Part one
 
-Day three is a parsing puzzle, one of my favorites. In part one, we have to find and evaluate all `mul` (arithmetic multiplication) instructions in the puzzle input. E.g., for this input:
+Day three is a parsing puzzle, one of my favorites. In part one, we have to find and **evaluate all `mul`** (arithmetic multiplication) instructions in the puzzle input. E.g., for this input:
 
 ```
 xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))
@@ -79,7 +81,7 @@ This code will fail in some cases though, e.g. if the input string ends with `"m
 
 ## Part two
 
-Part two introduced two new instructions, `do()` and `don't()`. `do()` enables future `mul` and `don't()` disables them. `mul` instructions are enabled by default. Since the `mul` instruction can only be either enabled or disabled, we can use a boolean flag to keep track of this state.
+Part two introduced two new instructions, `do()` and `don't()`. `do()` **enables** future `mul` and `don't()` **disables** them. `mul` instructions are enabled by default. Since the `mul` instruction can only be either enabled or disabled, we can use a boolean flag to keep track of this state.
 
 The updated grammar looks like this:
 

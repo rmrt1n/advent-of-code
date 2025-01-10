@@ -1,8 +1,10 @@
 # Day 04: Ceres Search
 
+[Full solution](../src/days/day04.zig).
+
 ## Part one
 
-Day four's puzzle is a word search. For part one, we have to count the occurence of the word `XMAS`in our puzzle input. The word can be horizontal, vertical, diagonal, and written backwards, for example:
+Day four's puzzle is a word search. For part one, we have to count the occurence of the word **`XMAS`** in our puzzle input. The word can be horizontal, vertical, diagonal, and written backwards, for example:
 
 ```
 MMMSXXMASM
@@ -43,7 +45,7 @@ fn Day04(length: usize) type {
 
 The appoach we'll take for this solution is to iterate over the matrix in all possible directions (horizontal `-`, vertical `|`, backward diagonal `\`, and forward diagonal `/`) in windows of four (the length of `XMAS`). For each window, we'll check if it matches `XMAS` or its reverse `SAMX`.
 
-To illustrate, here are the windows for the index (i, j):
+To illustrate, here are the windows for the index `i, j`:
 
 ```
 ┌─────────┬─────────┬─────────┬─────────┐
@@ -58,10 +60,10 @@ To illustrate, here are the windows for the index (i, j):
 
 ```
 
-1. The horizontal window is: (i, j), (i, j+1), (i, j+2), (i, j+3).
-2. The vertical window is: (i, j), (i+1, j), (i+2, j), (i+3, j).
-3. The backward diagonal window is: (i, j), (i+1, j+1), (i+2, j+2), (i+3, j+3).
-4. The forward diagonal window is: (i+3, j), (i+2, j+1), (i+1, j+2), (i, j+3).
+1. The horizontal window is: `i, j`, `i, j+1`, `i, j+2`, `i, j+3`.
+2. The vertical window is: `i, j`, `i+1, j`, `i+2, j`, `i+3, j`.
+3. The backward diagonal window is: `i, j`, `i+1, j+1`, `i+2, j+2`, `i+3, j+3`.
+4. The forward diagonal window is: `i+3, j`, `i+2, j+1`, `i+1, j+2`, `i, j+3`.
 
 Now to put it in code:
 
@@ -100,7 +102,7 @@ fn part1(self: Self) u64 {
 }
 ```
 
-Because we're doing unsafe indexing (with index arithmetics), we have to make sure not to go out of bounds. For the horizontal and vertical windows, we can do this by limiting j to be at most N - 4. For the diagonals, we have to limit both i and j to be less then M - 4 and N - 4 respectively. M is the number of rows, N is the number of columns, and 4 is the length of `XMAS`.
+Because we're doing unsafe indexing (with index arithmetics), we have to make sure not to go out of bounds. For the horizontal and vertical windows, we can do this by limiting `j` to be at most N-4. For the diagonals, we have to limit both `i` and `j` to be less then M-4 and N-4 respectively. M is the number of rows, N is the number of columns, and 4 is the length of `XMAS`.
 
 The `matches` function checks if a string matches either `XMAS` or `SAMX`:
 
@@ -113,14 +115,16 @@ fn matches(comptime word: []const u8, slice: []const u8) bool {
 }
 ```
 
-Because `matches` takes in a `word` that is compile-time known (marked by `comptime`), We can allocate an array with the same size as `word` to be reversed at runtime, avoiding dynamic allocation entirely. This works because under the hood, the Zig compiler will create a separate function for each different `word` passed to it.
+Some notes about the `matches` function. Usually, to reverse an arbitrary string you need to dynamically allocate a buffer with the same size as the string which happens at runtime, because the size of the string is unknown at compile time. However, the `XMAS` string is compile-time known, so we can initialize an array with the length of the string. The downside of this is that it'll only work for strings that are the same length as `XMAS`. If we have another string with a different length that we want to check (which we do in part two), we'll have to write another function just to handle that other string.
+
+With Zig's comptime, we can write just one function to do this, and Zig will generate the corresponding functions for every string we want to check. The `matches` function above takes in a `word` that is compile-time known (marked by `comptime`). Under the hood, the Zig compiler will create a separate function for every different `word` passed to it.
 
 E.g. if your code contains `matches("XMAS", slice)` and `matches("A", slice)`, zig will create two functions `matches_anon_random_id1` and `matches_anon_random_id2`. `matches_anon_random_id1` contains a buffer of length four, while `matches_anon_random_id2`'s buffer has a length of one.
 
 
 ## Part two
 
-In part two, instead of searching for the word `XMAS`, we have to find two `MAS` in an "X" shape, like so:
+In part two, instead of searching for the word `XMAS`, we have to find **two `MAS` in an "X" shape**, like so:
 
 ```
 M S
@@ -128,7 +132,7 @@ M S
 M S
 ```
 
-Just like in part one, the `MAS` string can be in reversed order too. Here, we can actually reuse part one's solution with slight tweaks. Now, we only have to check the diagonal windows and both of them must contain `MAS`.
+Just like in part one, the `MAS` string can be in reversed order too. Here, we can actually reuse part one's solution with slight tweaks. Now, we only have to check the diagonal windows and check that if both of them contain `MAS`.
 
 ```zig
 fn part2(self: Self) u64 {

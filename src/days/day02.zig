@@ -38,9 +38,9 @@ fn Day02(comptime length: usize) type {
                     result += 1;
                     continue;
                 }
-                for (1..report[0]) |i| {
+                for (1..(report[0] + 1)) |i| {
                     var dampened = report;
-                    dampened[0] = report[0] - 1;
+                    dampened[0] -= 1;
                     @memcpy(dampened[i..9], report[(i + 1)..]);
 
                     if (is_valid_report(&dampened)) {

@@ -1,5 +1,7 @@
 # Day 02: Red-Nosed Reports
 
+[Full solution](../src/days/day02.zig).
+
 ## Part one
 
 For day two we're given a list of reports, where each report is a list of levels separated by a space:
@@ -119,9 +121,9 @@ fn part2(self: Self) u64 {
             result += 1;
             continue;
         }
-        for (1..report[0]) |i| {
+        for (1..(report[0] + 1)) |i| {
             var dampened = report;
-            dampened[0] = report[0] - 1;
+            dampened[0] -= 1;
             @memcpy(dampened[i..9], report[(i + 1)..]);
 
             if (is_valid_report(&dampened)) {
