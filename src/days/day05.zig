@@ -3,7 +3,7 @@ const std = @import("std");
 fn Day05(length: usize) type {
     return struct {
         rules: [100][100]bool = .{.{false} ** 100} ** 100,
-        updates: [length][30]u8 = .{.{0} ** 30} ** length,
+        updates: [length][30]u8 = undefined,
 
         const Self = @This();
 

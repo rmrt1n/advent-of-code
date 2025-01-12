@@ -2,7 +2,7 @@ const std = @import("std");
 
 fn Day02(comptime length: usize) type {
     return struct {
-        reports: [length][10]u8 = .{.{0} ** 10} ** length,
+        reports: [length][10]u8 = undefined,
 
         const Self = @This();
 

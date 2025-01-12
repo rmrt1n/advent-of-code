@@ -63,7 +63,7 @@ fn part1(self: Self) u64 {
 
 For part two, we're asked for the **similarity score**, which is the sum of each number (location ID) in the left list multiplied by its frequency in the right list. In other words, we have to count how many times a number in the left list appears in the right list.
 
-We can do this with a hashmap, e.g. Zig's `std.AutoHashmap`, but since the location IDs have at most 5 digits (from inspecting the input file) we can just use a regular array. `std.AutoHashmap` does dynamic allocation, which will slow down our solution a bit, though the difference is negligible in day one.
+We can do this with a hashmap, e.g. Zig's `std.AutoHashmap`, but since the location IDs have at most five digits (from inspecting the input file) we can just use a regular array of size 100,000 (to hold all five digit numbers). `std.AutoHashmap` does dynamic allocation, which will slow down our solution a bit, though the difference is negligible in day one.
 
 ```zig
 fn part2(self: Self) u64 {
