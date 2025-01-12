@@ -54,7 +54,7 @@ fn Day07(length: usize) type {
 }
 ```
 
-We'll use two arrays, one to store the results and the other to store the operands. We'll use the same techniqe as day two and day five to parse the operands.
+We'll use two arrays, one to store the results and another one to store the operands. We'll use the same technique as day two and day five to parse the operands.
 
 For part one (and spoilers, part two too), we have to find only the equations that can be made true using the given operators. We'll do this by computing all the possible combination and permutation of the operators for each equation. We'll implement a `is_valid_equation` for this, but before that we'll first define a type for the operators.
 
@@ -79,7 +79,7 @@ The `Operator` enum has a `apply` method that for applying the operator on two o
 
 Here's a visualization of the algorithm in pseudocode, with `60` as the result and `[3, 4, 5]` as the operands:
 
-```md
+```python
 # We start with the first operand in the buffer (queue).
 buffer = [3]
 
@@ -139,7 +139,7 @@ Okay, this looks a lot different than the pseudocode. The pseudocode from before
 
 Here, instead of `std.ArrayList` I used a make-shift queue using an array with a big enough capacity to hold all of the permutations. Then, I keep track of the start and end of the "queue" using the `left` and `right` variables which holds the first and last index of the "queue". Here's a visualization based on the previous example:
 
-```md
+```python
 # Starting state
 buffer = [3, ..........extra space]
 left = 0
@@ -158,14 +158,14 @@ right = 7
 
 This code is a bit more complex, but results in around 4x speed up on my machine because we don't dynamically allocate memory. Here, I used `(std.math.pow(u64, n, 12) - 1) / (n - 1)` as the size of the array. This is the minimum capacity of the array to be able to hold all permutations from my puzzle input. Here's how this number is derrived:
 
-1. The minimum size needed is the sum of the geometric series $a + ar + ar^2 + ... + ar^n$, where:
-    a. $a$ is the first term (1).
-    b. $r$ is the common ratio, which in this case is the number of operators (2).
-    c. $n$ is the number of terms, which in my case is 11. In my input, the longest operands sequence is 12, which means the longest combination of operators is 11.
-2. The equation for the sum of the series until term $n$ is:
-    $$
-    \sum_{k=0}^{n-1} a r^k = a \frac{r^n - 1}{r - 1}, \quad r \neq 1
-    $$
+1. Each iteration, the number of "active" items in the queue becomes $r^k$, where $r$ is the number of operators and $k$ is the current number of operands processed.
+2. Therefore the minimum size needed is the sum of the geometric series $a + ar + ar^2 + ... + ar^n$, where:
+    - $a$ is the first term (1).
+    - $r$ is the common ratio, which in this case is the number of operators (2).
+    - $n$ is the number of terms, which in my case is 11. In my input, the longest operands sequence is 12, which means the longest combination of operators is 11.
+3. The equation for the sum of the series until term $n$ is:
+
+$$ \sum_{k=0}^{n-1} a r^k = a \frac{r^n - 1}{r - 1}, \quad r \neq 1 $$
 
 At this point it's just me nerding out sorry.., let's get back to the main point, the solution to part one. The heavy lifting is already done by `is_valid_equation`, the code for part one is simple:
 
@@ -200,7 +200,7 @@ const Operator = enum {
 };
 ```
 
-This is yet another math trick $x \cdot 10^{\lfloor \log_{10}(y) \rfloor + 1} + y$, which can be translated into:
+This is yet another math trick: $x \cdot 10^{\lfloor \log_{10}(y) \rfloor + 1} + y$, which can be translated into:
 
 ```zig
 var result = x;
@@ -211,7 +211,7 @@ while (y > 0) : (y /= 10) {
 result += old_y;
 ```
 
-Both has around the same performance, so I opted for the one with ~shorter~ cooler one. The code for part two itself is almost the same as part one, with the only difference being the addition of `.cat` in the `operators` array. Again, an optional optimization here is parallelization.
+Both has around the same performance, so I opted for the one with ~shorter~ cooler one. The code for part two itself is almost the same as part one, with the only difference being the addition of `.cat` in the `operators` array. Again, an optional optimization here is to check the equations in parallel.
 
 ```zig
 fn part2(self: Self) u64 {
