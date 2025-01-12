@@ -6,7 +6,7 @@
 
 The first day when the difficulty spiked. The input consists of two parts, **page ordering rules** and **updates**. Page order rules indicate which page must come before another page in an update, with a frmat of `X|Y` where `X` must always come before `Y`. An update is a list of page numbers, like so:
 
-```
+```md
 # First part is the page order rules (These comments don't exist in the actual input)
 47|53
 97|13

@@ -81,9 +81,9 @@ I made some non-obvious decisions in the parsing code, so I'll explain about it 
 
 With this added border, we only have to check if the current tile is `*`, instead of doing an index check like `x >= 0 && y >= 0 && x < N && y < N`. It results in less instructions and IMO the resulting code is simpler.
 
-Another point is that we're parsing the tiles into the `obstacle`, `path`, `exit`, and `visited` variables instead of just using the `.`, `#`, '*' characters. A benefit of this is that the verbs encode meaning so that we don't have to remember what `.` stands for, but the main reason for this will become apparent in part two, so bear with me until then. It's hard to explain without the context needed that will be given in part two.
+Another point is that we're parsing the tiles into the `obstacle`, `path`, `exit`, and `visited` variables instead of just using the `.`, `#`, `*` characters. A benefit of this is that the verbs encode meaning so that we don't have to remember what `.` stands for, but the main reason for this will become apparent in part two, so bear with me until then. It's hard to explain without the context needed that will be given in part two.
 
-We're also keeping track of the positions as a `[2]i16` instead of other unsigned integer types. If you've done some leetcode before, you might be familiar with this kind of code:
+We're also keeping track of the positions as a `[2]i16` instead of other unsigned integer types. If you've done some LeetCode before, you might be familiar with this kind of code:
 
 ```python
 # This is python code.
@@ -116,11 +116,11 @@ This method returns a [vector](https://zig.guide/language-basics/vectors/) for t
 
 ```zig
 const position = [2]i16{ 2, 3 };
-const vector = Direction.up.vector(); // Returns {-1, 0 }
-const next_position = position + vector; // Becomes { 1, 3 }
+const direction = Direction.up.vector(); // Returns {-1, 0 }
+const next_position = position + direction; // Becomes { 1, 3 }
 ```
 
-This code is easier to read than something like `[2]i16{ position[0] + vector[0], position[1] + vector[1]}` and also faster since it uses [SIMD instructions](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data).
+This code is easier to read than something like `[2]i16{ position[0] + direction[0], position[1] + direction[1]}` and also faster since it uses [SIMD instructions](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data).
 
 We'll also need a `rotate` method that'll return the current direction rotated to the right, e.g. `.up` rotated becomes `.right`, `.right` rotated becomes `.down`, and so on.
 
@@ -165,7 +165,7 @@ fn part1(self: Self) u64 {
 }
 ```
 
-For each `path` we encounter, we'll mark it as visited an increment the `result` variable, which holds the count of unique tiles visited. If the current tile is an `obstacle` we move to the previous tile with `position - direction.vector()` and turn right.
+For each `path` we encounter, we'll mark it as visited an increment the `result` variable, which holds the count of unique tiles visited. If the current tile is an `obstacle` we move to the previous tile with `position -= direction.vector()` and turn right.
 
 `set_tile` and `get_tile` are helper methods because the indexing code is verbose and makes it harder to read:
 
