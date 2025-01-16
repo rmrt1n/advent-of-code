@@ -208,7 +208,7 @@ As you can see, the highest four bits are unused. We can use this to store metad
     right bit ─┘ down bit
 ```
 
-E.g., if a tile's up bit is set, it means that we have previously visited it heading up. With this, we don't need extra space to hold the direction information. To get/set this metadata, we'll use [bitmasking](https://en.wikipedia.org/wiki/Mask_(computing)). We'll create a method to return the mask for each direction:
+E.g., if a tile's up bit is set, it means that we have previously visited it heading up. If we store the tiles as their original character, e.g. `.` (`00101110` in binary), this doesn't work because the upper bits are set. With this, we don't need extra space to hold the direction information. To get/set this metadata, we'll use [bitmasking](https://en.wikipedia.org/wiki/Mask_(computing)). We'll create a method to return the mask for each direction:
 
 ```zig
 const Direction = enum {

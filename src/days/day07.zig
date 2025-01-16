@@ -10,15 +10,7 @@ const Operator = enum {
             .add => x + y,
             .mul => x * y,
             // This is roughly 1.5x faster than using a while loop.
-            .cat => blk: {
-                var result = x;
-                var mut_y = y;
-                while (mut_y > 0) : (mut_y /= 10) {
-                    result *= 10;
-                }
-                break :blk result + y;
-            },
-            // .cat => x * std.math.pow(u64, 10, std.math.log10(y) + 1) + y,
+            .cat => x * std.math.pow(u64, 10, std.math.log10(y) + 1) + y,
         };
     }
 };
@@ -78,6 +70,7 @@ fn Day07(length: usize) type {
             operands: []const u16,
             comptime operators: []const Operator,
         ) bool {
+            // This is around 18x faster than using ArrayLists as a queue.
             // Prefer [N]u8 over [_]u8 ** N because the former is faster, more than 4x faster.
             const n = operators.len;
             var permutations: [(std.math.pow(u64, n, 12) - 1) / (n - 1)]u64 = undefined;

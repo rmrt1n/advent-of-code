@@ -135,7 +135,7 @@ fn is_valid_equation(result: u64, operands: []const u16, comptime operators: []c
 }
 ```
 
-Okay, this looks a lot different than the pseudocode. The pseudocode from before uses a queue as the buffer, which can be implemented using `std.ArrayList` in Zig. It uses dynamic allocation though, which I wanted to avoid. There's also `std.PriorityDequeue` which could work, but I haven't tried it yet so I don't have much to say about it.
+Okay, this looks a bit different than the pseudocode. The pseudocode from before uses a queue as the buffer, which can be implemented using `std.ArrayList` in Zig. It uses dynamic allocation though, which I wanted to avoid. There's also `std.PriorityDequeue` which could work, but I haven't tried it yet so I don't have much to say about it.
 
 Here, instead of `std.ArrayList` I used a make-shift queue using an array with a big enough capacity to hold all of the permutations. Then, I keep track of the start and end of the "queue" using the `left` and `right` variables which holds the first and last index of the "queue". Here's a visualization based on the previous example:
 
@@ -211,7 +211,7 @@ while (y > 0) : (y /= 10) {
 result += old_y;
 ```
 
-Both has around the same performance, so I opted for the one with ~shorter~ cooler one. The code for part two itself is almost the same as part one, with the only difference being the addition of `.cat` in the `operators` array. Again, an optional optimization here is to check the equations in parallel.
+Both has around the same performance, so I opted for the ~cooler~ shorter one. The code for part two itself is almost the same as part one, with the only difference being the addition of `.cat` in the `operators` array. Just like in the previous day, an optional optimization here is to check the equations in parallel.
 
 ```zig
 fn part2(self: Self) u64 {

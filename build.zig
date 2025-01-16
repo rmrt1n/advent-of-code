@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) void {
 
     const day_option = b.option(usize, "ay", "");
 
-    for (1..7) |day| {
+    for (1..26) |day| {
         const day_zig_file = b.path(b.fmt("src/days/day{d:0>2}.zig", .{day}));
 
         const run_exe = b.addExecutable(.{
