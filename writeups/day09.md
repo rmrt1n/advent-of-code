@@ -119,7 +119,7 @@ fn file_checksum(id: usize, size: usize, start: usize) u64 {
 Given a file's ID, size, and the index of its first block, we can get its checksum by multiplying its ID with the sum of all of its indexes. Here's a breakdown with an example using the file with the ID 3 from the sample input above:
 
 1. $checksum = (3 · 6) + (3 · 7) + (3 · 8)$
-2. $checksum = 3 · (6 + 7 + 8)
+2. $checksum = 3 · (6 + 7 + 8)$
 3. The indexes become an arithmetic series $a + (a + 1) + (a + 2) + ... + (a + n)$, where:
     - $a$ is the first term (the file's first block's index).
     - $n$ is the number of terms (the file size).
