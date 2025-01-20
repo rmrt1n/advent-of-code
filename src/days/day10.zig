@@ -47,26 +47,23 @@ fn Day10(length: usize) type {
                 var stack_length: usize = 1;
                 while (stack_length > 0) {
                     stack_length -= 1;
-                    const position = stack[stack_length].position;
-                    const previous = stack[stack_length].previous;
+                    const current = stack[stack_length];
 
-                    const current: i8 = @intCast(self.map[position[0]][position[1]]);
-
-                    if (current == 10 or current - previous != 1) continue;
-
-                    if (current == 9) {
-                        try trail_ends.put(position, {});
+                    const tile: i8 = @intCast(self.map[current.position[0]][current.position[1]]);
+                    if (tile == 10 or tile - current.previous != 1) continue;
+                    if (tile == 9) {
+                        try trail_ends.put(current.position, {});
                         continue;
                     }
 
                     for (directions) |direction| {
                         stack[stack_length] = .{
-                            .position = position + direction,
-                            .previous = previous + 1,
+                            .position = current.position + direction,
+                            .previous = current.previous + 1,
                         };
                         stack[stack_length + 1] = .{
-                            .position = position - direction,
-                            .previous = previous + 1,
+                            .position = current.position - direction,
+                            .previous = current.previous + 1,
                         };
                         stack_length += 2;
                     }
@@ -86,26 +83,23 @@ fn Day10(length: usize) type {
                 var stack_length: usize = 1;
                 while (stack_length > 0) {
                     stack_length -= 1;
-                    const position = stack[stack_length].position;
-                    const previous = stack[stack_length].previous;
+                    const current = stack[stack_length];
 
-                    const current: i8 = @intCast(self.map[position[0]][position[1]]);
-
-                    if (current == 10 or current - previous != 1) continue;
-
-                    if (current == 9) {
+                    const tile: i8 = @intCast(self.map[current.position[0]][current.position[1]]);
+                    if (tile == 10 or tile - current.previous != 1) continue;
+                    if (tile == 9) {
                         result += 1;
                         continue;
                     }
 
                     for (directions) |direction| {
                         stack[stack_length] = .{
-                            .position = position + direction,
-                            .previous = previous + 1,
+                            .position = current.position + direction,
+                            .previous = current.previous + 1,
                         };
                         stack[stack_length + 1] = .{
-                            .position = position - direction,
-                            .previous = previous + 1,
+                            .position = current.position - direction,
+                            .previous = current.previous + 1,
                         };
                         stack_length += 2;
                     }
