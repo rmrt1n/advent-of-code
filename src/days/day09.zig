@@ -27,7 +27,6 @@ fn Day09(length: usize) type {
                 var size = mutable_disk_map[left];
                 if (left % 2 == 0) {
                     result += file_checksum(left / 2, size, index);
-                    // result += left / 2 * (size * (2 * index + size - 1) / 2);
                 } else {
                     var right_size = mutable_disk_map[right];
                     while (size >= right_size) : (right_size = mutable_disk_map[right]) {

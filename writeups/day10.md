@@ -21,7 +21,7 @@ First, we'll parse the input:
 fn Day10(length: usize) type {
     return struct {
         map: [length + 2][length + 2]u8 = .{.{10} ** (length + 2)} ** (length + 2),
-        starts: std.ArrayList([2]i16) = undefined,
+        starts: std.ArrayList([2]u8) = undefined,
         allocator: std.mem.Allocator,
 
         const Self = @This();
@@ -47,7 +47,7 @@ fn Day10(length: usize) type {
 }
 ```
 
-The map tiles are parsed into their integer representation. Just like in previous days, we'll add a border to the map so that we don't have to check for out of bound errors. Here, the border tile is represented by a `10` height. We're also keeping track of all of the starting positions of the trailheads (the `0` height tiles), since we just have to start from those. This saves around 0.1ms from both parts, which is a small performance boost. Instead of an `std.ArrayList` we could've used a regular array here, but from my benchmarking this doesn't result in much of a difference so I'm keeping this version for simplicity.
+The map tiles are parsed into their integer representation. Just like in previous days, we'll add a border to the map so that we don't have to check for out of bound errors. Here, the border tile is represented by a `10` height. We're also keeping track of all of the starting positions of the trailheads (the `0` height tiles), since we just have to start from those. Instead of an `std.ArrayList` we could've used a regular array here, but from my benchmarking this doesn't result in much of a difference so I'm keeping this version for simplicity.
 
 This problem maps nicely into a recursive solution, so here is one way to solve it:
 
@@ -80,15 +80,17 @@ fn get_trailhead_score(
 This is a depth-first search (DFS) algorithm that recursively goes to the next tile until it finds a `9` tile. It keeps track of all the seen `9` tiles by using a set. An improvement to this is to implement this function iteratively, which results in a roughly 13x performance boost on my machine because the program doesn't have the overhead of creating new stackframes. Here's the previous function refactored to be iterative:
 
 ```zig
+const directions = [_]@Vector(2, u1){ .{ 1, 0 }, .{ 0, 1 } };
+
 const StackItem = struct { position: [2]i16, previous: i8 };
 
 fn part1(self: Self) !u64 {
     var result: u64 = 0;
     for (self.starts.items) |point| {
         var stack: [30]StackItem = undefined;
-        stack[0] = .{ .position = .{ point[0], point[1] }, .previous = -1 };
+        stack[0] = .{ .position = point, .previous = -1 };
 
-        var trail_ends = std.AutoHashMap([2]i16, void).init(self.allocator);
+        var trail_ends = std.AutoHashMap([2]u8, void).init(self.allocator);
         defer trail_ends.deinit();
 
         var stack_length: usize = 1;
@@ -97,9 +99,7 @@ fn part1(self: Self) !u64 {
             const position = stack[stack_length].position;
             const previous = stack[stack_length].previous;
 
-            const current: i8 = @intCast(
-                self.map[@intCast(position[0])][@intCast(position[1])],
-            );
+            const current: i8 = @intCast(self.map[position[0]][position[1]]);
 
             if (current == 10 or current - previous != 1) continue;
 
@@ -113,7 +113,11 @@ fn part1(self: Self) !u64 {
                     .position = position + direction,
                     .previous = previous + 1,
                 };
-                stack_length += 1;
+                stack[stack_length + 1] = .{
+                    .position = position - direction,
+                    .previous = previous + 1,
+                };
+                stack_length += 2;
             }
         }
         result += trail_ends.count();
@@ -157,7 +161,7 @@ fn part2(self: Self) !u64 {
     var result: u32 = 0;
     for (self.starts.items) |point| {
         var stack: [30]StackItem = undefined;
-        stack[0] = .{ .position = .{ point[0], point[1] }, .previous = -1 };
+        stack[0] = .{ .position = point, .previous = -1 };
 
         var stack_length: usize = 1;
         while (stack_length > 0) {
@@ -165,9 +169,7 @@ fn part2(self: Self) !u64 {
             const position = stack[stack_length].position;
             const previous = stack[stack_length].previous;
 
-            const current: i8 = @intCast(
-                self.map[@intCast(position[0])][@intCast(position[1])],
-            );
+            const current: i8 = @intCast(self.map[position[0]][position[1]]);
 
             if (current == 10 or current - previous != 1) continue;
 
@@ -181,7 +183,11 @@ fn part2(self: Self) !u64 {
                     .position = position + direction,
                     .previous = previous + 1,
                 };
-                stack_length += 1;
+                stack[stack_length + 1] = .{
+                    .position = position - direction,
+                    .previous = previous + 1,
+                };
+                stack_length += 2;
             }
         }
     }
