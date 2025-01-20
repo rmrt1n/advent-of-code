@@ -14,6 +14,7 @@ pub fn main() !void {
         mean_results[0] += (to_f32(results[0]) - mean_results[0]) / to_f32(i);
         mean_results[1] += (to_f32(results[1] - results[0]) - mean_results[1]) / to_f32(i);
         mean_results[2] += (to_f32(results[2] - results[1]) - mean_results[2]) / to_f32(i);
+        _ = arena.reset(.retain_capacity);
     }
 
     const total_time = mean_results[0] + mean_results[1] + mean_results[2];

@@ -18,15 +18,16 @@ fn Day01(comptime length: usize) type {
                 result.right[i] = try std.fmt.parseInt(u32, inner_lexer.next().?, 10);
             }
 
-            std.mem.sort(u32, &result.left, {}, std.sort.asc(u32));
-            std.mem.sort(u32, &result.right, {}, std.sort.asc(u32));
-
             return result;
         }
 
         fn part1(self: Self) u64 {
+            var sorted = self;
+            std.mem.sort(u32, &sorted.left, {}, std.sort.asc(u32));
+            std.mem.sort(u32, &sorted.right, {}, std.sort.asc(u32));
+
             var result: u64 = 0;
-            for (self.left, self.right) |x, y| {
+            for (sorted.left, sorted.right) |x, y| {
                 result += @intCast(@abs(@as(i64, x) - y));
             }
             return result;
@@ -34,9 +35,8 @@ fn Day01(comptime length: usize) type {
 
         fn part2(self: Self) u64 {
             var frequencies = [_]u8{0} ** 100_000;
-            for (self.right) |id| {
-                frequencies[id] += 1;
-            }
+            for (self.right) |id| frequencies[id] += 1;
+
             var result: u64 = 0;
             for (self.left) |id| {
                 result += id * frequencies[id];
@@ -52,7 +52,7 @@ pub fn run(_: std.mem.Allocator, is_run: bool) ![3]u64 {
     var timer = try std.time.Timer.start();
 
     const input = @embedFile("./data/day01.txt");
-    const puzzle = try Day01(1000).init(input);
+    var puzzle = try Day01(1000).init(input);
     const time0 = timer.read();
 
     const result1 = puzzle.part1();
@@ -77,7 +77,7 @@ const sample_input =
 ;
 
 test "day 01 part 1 sample 1" {
-    const puzzle = try Day01(6).init(sample_input);
+    var puzzle = try Day01(6).init(sample_input);
     const result = puzzle.part1();
     try std.testing.expectEqual(11, result);
 }

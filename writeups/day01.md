@@ -38,19 +38,20 @@ fn Day01(comptime length: usize) type {
                 result.right[i] = try std.fmt.parseInt(u32, inner_lexer.next().?, 10);
             }
 
-            std.mem.sort(u32, &result.left, {}, std.sort.asc(u32));
-            std.mem.sort(u32, &result.right, {}, std.sort.asc(u32));
-
             return result;
         }
     };
 }
 ```
 
-We'll sort the arrays in the parsing function in case both parts needed them sorted. Next we'll iterate over both arrays, calculate the absolute difference of each pair, and sum them all up to get the answer for part one.
+To solve part one, we'll sort the arrays in first before iterating over both of them. Then, we'll calculate the absolute difference of each pair, and sum them all up to get the answer for part one.
 
 ```zig
 fn part1(self: Self) u64 {
+    var sorted = self;
+    std.mem.sort(u32, &sorted.left, {}, std.sort.asc(u32));
+    std.mem.sort(u32, &sorted.right, {}, std.sort.asc(u32));
+
     var result: u64 = 0;
     for (self.left, self.right) |x, y| {
         result += @intCast(@abs(@as(i64, x) - y));
@@ -68,9 +69,8 @@ We can do this with a hashmap, e.g. Zig's `std.AutoHashmap`, but since the locat
 ```zig
 fn part2(self: Self) u64 {
     var frequencies = [_]u8{0} ** 100_000;
-    for (self.right) |id| {
-        frequencies[id] += 1;
-    }
+    for (self.right) |id| frequencies[id] += 1;
+
     var result: u64 = 0;
     for (self.left) |id| {
         result += id * frequencies[id];
