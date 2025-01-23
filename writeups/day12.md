@@ -130,6 +130,10 @@ const Direction = enum {
         const directions = [_][2]i8{ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
         return directions[@intFromEnum(direction)];
     }
+
+    fn rotate(direction: Direction) Direction {
+        return @enumFromInt((@as(u8, @intFromEnum(direction)) + 1) % 4);
+    }
 };
 ```
 
