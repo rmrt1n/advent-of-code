@@ -26,7 +26,46 @@ Prize: X=18641, Y=10279
 
 There are two buttons, A and B. Each button requires **tokens** to push, with A requiring three tokens and B one token. Each section of the input describes the machine configuration. For example, the first machine's button A moves 94 units in the X axis and 34 unit in the Y axis when pushed. The prize is located at the coordinates (8400, 5400).
 
-For part one, we have to find the cheapest way to get the prize (using the fewest number of tokens). There are also machines where it's not possible to get the prize, which we'll just ignore.
+For part one, we have to find the cheapest way to get the prize (using the fewest number of tokens). There are also machines where it's not possible to get the prize, which we'll just ignore. First we'll parse the input. Arguably, this is the hardest part of the puzzle:
+
+```zig
+fn Day13(length: usize) type {
+    return struct {
+        buttons_a: [length][2]u8 = undefined,
+        buttons_b: [length][2]u8 = undefined,
+        prizes: [length][2]i64 = undefined,
+
+        const Self = @This();
+
+        fn init(input: []const u8) !Self {
+            var result = Self{};
+
+            var i: usize = 0;
+            var lexer = std.mem.tokenizeScalar(u8, input, '\n');
+            while (lexer.next()) |line| : (i += 1) {
+                result.buttons_a[i][0] = try std.fmt.parseInt(u8, line[12..14], 10);
+                result.buttons_a[i][1] = try std.fmt.parseInt(u8, line[18..], 10);
+
+                var new_line = lexer.next().?;
+                result.buttons_b[i][0] = try std.fmt.parseInt(u8, new_line[12..14], 10);
+                result.buttons_b[i][1] = try std.fmt.parseInt(u8, new_line[18..], 10);
+
+                new_line = lexer.next().?;
+                var inner_lexer = std.mem.tokenizeScalar(u8, new_line, ' ');
+                _ = inner_lexer.next().?; // Skip 'Prize: X:'
+
+                new_line = inner_lexer.next().?;
+                result.prizes[i][0] = try std.fmt.parseInt(i64, new_line[2 .. new_line.len - 1], 10);
+
+                new_line = inner_lexer.next().?;
+                result.prizes[i][1] = try std.fmt.parseInt(i64, new_line[2..new_line.len], 10);
+            }
+
+            return result;
+        }
+    };
+}
+```
 
 To solve this, we can do a bit of maths. For each claw machine, we can write these equations:
 
