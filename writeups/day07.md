@@ -163,7 +163,7 @@ This code is a bit more complex, but results in around 4x speed up on my machine
     - $a$ is the first term (1).
     - $r$ is the common ratio, which in this case is the number of operators (2).
     - $n$ is the number of terms (11). In my input, the longest operands sequence is 12, which means the longest combination of operators is 11.
-3. The formula for the sum of the series until term $n$ is:
+3. The equation for the sum of the series until term $n$ is:
 
 $$ \sum_{k=0}^{n-1} a r^k = a \frac{r^n - 1}{r - 1}, \quad r \neq 1 $$
 

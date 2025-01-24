@@ -67,7 +67,7 @@ fn Day13(length: usize) type {
 }
 ```
 
-To solve this, we can do a bit of maths. For each claw machine, we can write these equations:
+To solve today's puzzle, we can do a bit of maths. For each claw machine, we can write these equations:
 
 1. $nX_a + mX_b = X_p$
 2. $nY_a + mY_b = Y_p$
@@ -110,7 +110,7 @@ $$
 m = \frac{Y_pX_a - X_pY_a}{X_aY_b - Y_aX_b}
 $$
 
-We can implement this as a `count_tokens` function that will return either $n$ or $m$. We don't have to implement two different functions here because if you swap the A coordinates in the eqation for $n$, you'll get the equation for $m$. There are also cases where it is not possible to get the prize. We can detect this by checking if $n$ or $m$ is an integer.
+We can implement this as a `count_tokens` function that will return either $n$ or $m$. We don't have to implement two different functions here because if you swap A coordinates in the equation for $n$ with B's coordinates, you'll get the equation for $m$. There are also cases where it is not possible to get the prize. We can detect this by checking if $n$ or $m$ is an integer.
 
 ```zig
 fn count_tokens(a: [2]u8, b: [2]u8, p: [2]i64) ?u64 {
@@ -135,6 +135,8 @@ fn part1(self: Self) u64 {
     return result;
 }
 ```
+
+We swap the `a` and `b` arguments to `count_tokens` to get both $n$ (`tokens_a`) and $m$ (`tokens_b`). If any of those are `null`, it means that the prize is not winnable. Then we have to multiply `tokens_a` by three because pushing button A requires three tokens.
 
 ## Part two
 

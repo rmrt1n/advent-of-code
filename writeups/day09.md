@@ -123,7 +123,7 @@ Given a file's ID, size, and the index of its first block, we can get its checks
 3. The indexes become an arithmetic series $a + (a + 1) + (a + 2) + ... + (a + n)$, where:
     - $a$ is the first term (the file's first block's index).
     - $n$ is the number of terms (the file size).
-4. And the formula for the sum of an arithmetic series is:
+4. And the equation for the sum of an arithmetic series is:
 
 $$
 S_n = n \frac{a_1 + a_n}{2}

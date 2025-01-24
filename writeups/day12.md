@@ -167,7 +167,7 @@ Here's a visualization of what these corners look like:
 
 # And here's an inside corner
 ┌───┬───┐
-│ # │ A │
+│ A │ # │
 ├───┼───┤
 │ A │ A │
 └───┴───┘
@@ -260,7 +260,7 @@ There's a slight modification from the corner counting rules from above. We'll c
 
 With this, the rules for a corner become:
 
-1. If the tile at `?2` is not a the same tile as the rest of th garden, the `A` tile is an outside corner:
+1. If the tile at `?2` is not a the same tile as the rest of the garden, the `A` tile is an outside corner:
     ```
     # So either this:
     ┌───┬───┐
@@ -292,6 +292,28 @@ With this, the rules for a corner become:
     │ A │ A │
     └───┴───┘
     ```
+
+This maps to this section of part two's code:
+
+```zig
+fn part2(self: Self) u64 {
+    // ...
+    if (tile != plant) {
+        const turn1 = current.position + current.direction.rotate().vector();
+        const turn2 = turn1 - current.direction.vector();
+        const top_right = copy.get_tile_at(turn1);
+        const right = copy.get_tile_at(turn2);
+
+        if ((top_right == plant or top_right == plant - 'A') or
+            (right != plant and right != plant - 'A'))
+        {
+            sides += 1;
+        }
+        continue;
+    }
+    // ...
+}
+```
 
 You can also solve both parts at the same time if you want to.
 
