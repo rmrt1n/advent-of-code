@@ -32,7 +32,7 @@ const exit: u8 = 3;
 fn Day06(comptime length: usize) type {
     return struct {
         map: [length + 2][length + 2]u8 = .{.{exit} ** (length + 2)} ** (length + 2),
-        position: [2]i16 = undefined,
+        position: @Vector(2, i16) = undefined,
         direction: Direction = .up,
 
         const Self = @This();

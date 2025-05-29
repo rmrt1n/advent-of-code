@@ -67,13 +67,13 @@ $$
 
 Where:
 - $\vec{r}$ is the displacement or the resulting position. The arrow on top signifies that it's a vector.
-- $\vec{r_0} is the starting position.
-- $\vec{v} is the velocity.
+- $\vec{r_0}$ is the starting position.
+- $\vec{v}$ is the velocity.
 - $t$ is the time taken.
 
 To account for the teleportation, we'll [mod](https://en.wikipedia.org/wiki/Modulo) the resulting position with the map size. This will wrap the robot back into the map from the other side.
 
-To solve part one, we'll have to iterate over all robots, calculate the final position, and the quadrant it is in. Here is the code for this:
+To solve part one, we'll have to iterate over all robots, calculate the final position, and find the quadrant it is in. Here is the code for this:
 
 ```zig
 fn part1(self: Self, seconds: usize) u64 {
@@ -130,6 +130,3 @@ fn part2(self: Self) u64 {
 This was a very cool puzzle with a lot of different solutions. Checkout the other solutions in the [Advent subreddit](https://www.reddit.com/r/adventofcode/comments/1hdvhvu/2024_day_14_solutions/), some of them are very creative!
 
 ## Benchmarks
-
-Notes:
-- some dude used maths chinese remainder theorem to get the treee: https://www.reddit.com/r/adventofcode/comments/1hdvhvu/comment/m1zws1g/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
