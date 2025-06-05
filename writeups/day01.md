@@ -54,7 +54,7 @@ fn part1(self: Self) u64 {
 
     var result: u64 = 0;
     for (self.left, self.right) |x, y| {
-        result += @intCast(@abs(@as(i64, x) - y));
+        result += @abs(@as(i64, x) - y);
     }
     return result;
 }

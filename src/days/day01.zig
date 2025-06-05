@@ -28,7 +28,7 @@ fn Day01(comptime length: usize) type {
 
             var result: u64 = 0;
             for (sorted.left, sorted.right) |x, y| {
-                result += @intCast(@abs(@as(i64, x) - y));
+                result += @abs(@as(i64, x) - y);
             }
             return result;
         }
