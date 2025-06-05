@@ -54,10 +54,7 @@ Also, we'll bring in the direction enum from previous days:
 
 ```zig
 const Direction = enum {
-    up,
-    right,
-    down,
-    left,
+    up, right, down, left,
 
     fn vector(direction: Direction) @Vector(2, i8) {
         const directions = [_][2]i8{ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
