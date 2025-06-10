@@ -157,17 +157,16 @@ fn part1(self: Self) !std.ArrayList(u3) {
 
 Part two is where the fun's at. This one might be my favorite puzzle from the whole challenge. Now, we have to find the lowest value that when set in register A will make the program output itself.
 
-There are many different ways to solve this (another reason why this puzzle is so cool). I went with the reverse engineering approach and tried to understand what my program was doing first. I'm pretty sure the other puzzle inputs also follow this structure, but I haven't tested with other inputs, so I'll just assume this will work with most other inputs. Here's my puzzle input translated into python:
+There are many different ways to solve this (another reason why this puzzle is so cool). I went with the reverse engineering approach and tried to understand what my program was doing first. I'm pretty sure the other puzzle inputs also follow this structure, but I haven't tested with other inputs, so I'll just assume this will work with most other inputs. Here's my puzzle input translated into zig:
 
-```python
-while a > 0:
-    b = (a % 8) ^ x
-    c = a // 2**b
+```zig
+while (a > 0) : (a /= 8){
+    b = (a % 8) ^ x;
+    c = a / std.math.pow(u32, 2, b);
     b ^= c ^ y
 
-    print(b % 8)
-
-    a = a // 8
+    std.debug.print("{}", .{b & 8});
+}
 ```
 
 The `x` and `y` vars are literal operands that I think will be different accross inputs, but the program logic should still be the same as above. This program:
