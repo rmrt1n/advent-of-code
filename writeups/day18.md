@@ -1,4 +1,4 @@
-# Day 18:
+# Day 18: RAM Run
 
 [Full solution](../src/days/day18.zig).
 

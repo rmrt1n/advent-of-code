@@ -1,4 +1,4 @@
-# Day 20:
+# Day 20: Race Condition
 
 [Full solution](../src/days/day20.zig).
 

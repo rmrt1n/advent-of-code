@@ -1,4 +1,4 @@
-# Day 17:
+# Day 17: Chronospatial Computer
 
 [Full solution](../src/days/day17.zig).
 

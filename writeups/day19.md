@@ -1,4 +1,4 @@
-# Day 19:
+# Day 19: Linen Layout
 
 [Full solution](../src/days/day19.zig).
 

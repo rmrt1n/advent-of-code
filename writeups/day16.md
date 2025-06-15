@@ -1,4 +1,4 @@
-# Day 16:
+# Day 16: Reindeer Maze
 
 [Full solution](../src/days/day16.zig).
 
