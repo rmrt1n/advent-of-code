@@ -252,7 +252,7 @@ fn part1(self: Self) !u64 {
 
 ## Part two
 
-In part two, instead of two intermediary robots, the number of robots is increased to 25. We did all the hard work in part one and also made `get_sequence_length_for_depth` take in a `depth` parameter, so part two is as simple as changin the arguments we pass to the function:
+In part two, instead of two intermediary robots, the number of robots is increased to 25. We did all the hard work in part one and also made `get_sequence_length_for_depth` take in a `depth` parameter, so part two is as simple as changing the arguments we pass to the function:
 
 ```zig
 fn part2(self: Self) !u64 {
