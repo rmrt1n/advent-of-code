@@ -58,7 +58,7 @@ Here's an example to visualize:
 
 Above is a grid where the starting tile is `i,j` and the cheat duration (the max manhattan distance) is 3. The tiles with `.......` are unreachable within the cheat duration. So for our solution, we only have to check if the reachable tiles are valid path tiles, not obstacle tiles. Then, we have to check if cheating to that tile reduces the race time.
 
-To get the saved time by cheating from tile A to tile B, we can subtract the normal time it takes to get from A to B with the cheat duration. The normal time is that time taken to get to a tile without using any cheats. In our case, since it takes one second to move one tile, the normal time taken to reach the $n^\th$ tile is $n$ seconds.
+To get the saved time by cheating from tile A to tile B, we can subtract the normal time it takes to get from A to B with the cheat duration. The normal time is that time taken to get to a tile without using any cheats. In our case, since it takes one second to move one tile, the normal time taken to reach the $n^\text{th}$ tile is $n$ seconds.
 
 Okay, now let's get to the code. First we'll parse the input:
 
