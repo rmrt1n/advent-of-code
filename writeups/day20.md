@@ -105,6 +105,8 @@ To count the time saved, we'll need a mapping of a tile to its time taken. We ca
 Next, we'll create a `count_cheats` function that will return the number of cheats that will save you at least `min_duration` with a certain `cheat_duration`. The function is a bit long, so I'll step through it one section at a time:
 
 ```zig
+const directions = [_]@Vector(2, i8){ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
+
 fn count_cheats(self: *Self, cheat_duration: i32, min_duration: u32) u32 {
     // My path length is around 9500, so allocate enough space for it.
     var race_track: [10_000][2]i32 = undefined;
