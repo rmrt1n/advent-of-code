@@ -2,10 +2,10 @@ const std = @import("std");
 
 fn Day01(comptime length: usize) type {
     return struct {
+        const Self = @This();
+
         left: [length]u32 = undefined,
         right: [length]u32 = undefined,
-
-        const Self = @This();
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -34,7 +34,10 @@ fn Day01(comptime length: usize) type {
         }
 
         fn part2(self: Self) u64 {
-            var frequencies = [_]u8{0} ** 100_000;
+            // Allocate enough space for 10_000 up to 99_999.
+            const frequencies_capacity = 100_000;
+            var frequencies = [_]u8{0} ** frequencies_capacity;
+
             for (self.right) |id| frequencies[id] += 1;
 
             var result: u64 = 0;

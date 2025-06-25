@@ -22,10 +22,10 @@ To get started, we'll parse the input into two arrays `left` and `right`. We'll 
 ```zig
 fn Day01(comptime length: usize) type {
     return struct {
+        const Self = @This();
+
         left: [length]u32 = undefined,
         right: [length]u32 = undefined,
-
-        const Self = @This();
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -66,10 +66,13 @@ For part two, we're asked for the **similarity score**, which is the sum of each
 
 We can do this with a hashmap, e.g. Zig's `std.AutoHashmap`, but since the location IDs have at most five digits (from inspecting the input file) we can just use a regular array of size 100,000 (to hold all five digit numbers). `std.AutoHashmap` does dynamic allocation, which will slow down our solution a bit, though the difference is negligible in day one.
 
+// TODO: github callout for 100,000 vs 99,999 - 10,000 + 1
+
 ```zig
 fn part2(self: Self) u64 {
-    var frequencies = [_]u8{0} ** 100_000;
-    for (self.right) |id| frequencies[id] += 1;
+    // Allocate enough space for 10_000 up to 99_999.
+    const frequencies_capacity = 100_000;
+    var frequencies = [_]u8{0} ** frequencies_capacity;
 
     var result: u64 = 0;
     for (self.left) |id| {
