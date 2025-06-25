@@ -25,9 +25,9 @@ For this day, there is no input parsing logic and we can work directly on the pu
 ```zig
 fn Day03() type {
     return struct {
-        memory: []const u8,
-
         const Self = @This();
+
+        memory: []const u8,
 
         fn init(input: []const u8) Self {
             return Self{ .memory = input };
@@ -48,6 +48,7 @@ Here's the code for part one:
 ```zig
 fn part1(self: Self) u64 {
     var result: u64 = 0;
+
     var i: usize = 0;
     while (i < self.memory[0..].len) : (i += 1) {
         if (self.memory[i] == 'm') {
@@ -73,6 +74,7 @@ fn part1(self: Self) u64 {
             }
         }
     }
+
     return result;
 }
 ```
@@ -99,6 +101,7 @@ We can keep the parsing logic from part one, but with a slight modification. In 
 fn part2(self: Self) u64 {
     var result: u64 = 0;
     var mul_enabled = true;
+
     var i: usize = 0;
     while (i < self.memory[0..].len) : (i += 1) {
         if (self.memory[i] == 'd') {
@@ -106,11 +109,13 @@ fn part2(self: Self) u64 {
                 mul_enabled = true;
                 i += 4;
             }
+
             if (std.mem.eql(u8, self.memory[i..(i + 7)], "don't()")) {
                 mul_enabled = false;
                 i += 7;
             }
         }
+
         if (mul_enabled and self.memory[i] == 'm') {
             if (std.mem.eql(u8, self.memory[i..(i + 4)], "mul(")) {
                 // This is the same as in part one.
@@ -118,6 +123,7 @@ fn part2(self: Self) u64 {
             }
         }
     }
+
     return result;
 }
 ```

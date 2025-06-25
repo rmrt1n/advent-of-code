@@ -2,10 +2,12 @@ const std = @import("std");
 
 fn Day05(length: usize) type {
     return struct {
-        rules: [100][100]bool = .{.{false} ** 100} ** 100,
-        updates: [length][30]u8 = undefined,
-
         const Self = @This();
+        const max_rule = 100;
+        const update_capacity = 30;
+
+        rules: [max_rule][max_rule]bool = .{.{false} ** max_rule} ** max_rule,
+        updates: [length][update_capacity]u8 = undefined,
 
         fn init(input: []const u8) !Self {
             var result = Self{};

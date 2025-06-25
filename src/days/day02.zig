@@ -2,9 +2,10 @@ const std = @import("std");
 
 fn Day02(comptime length: usize) type {
     return struct {
-        reports: [length][10]u8 = undefined,
-
         const Self = @This();
+        const report_capacity = 10;
+
+        reports: [length][report_capacity]u8 = undefined,
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -38,6 +39,7 @@ fn Day02(comptime length: usize) type {
                     result += 1;
                     continue;
                 }
+
                 for (1..(report[0] + 1)) |i| {
                     var dampened = report;
                     dampened[0] -= 1;
@@ -54,6 +56,7 @@ fn Day02(comptime length: usize) type {
 
         fn is_valid_report(report: []const u8) bool {
             const is_increasing = report[1] < report[2];
+
             for (1..(report[0])) |i| {
                 const larger = if (is_increasing) report[i + 1] else report[i];
                 const lesser = if (is_increasing) report[i] else report[i + 1];
@@ -61,6 +64,7 @@ fn Day02(comptime length: usize) type {
                 const diff = @as(i16, larger) - lesser;
                 if (diff < 1 or diff > 3) return false;
             }
+
             return true;
         }
     };

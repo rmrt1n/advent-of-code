@@ -2,9 +2,9 @@ const std = @import("std");
 
 fn Day04(length: usize) type {
     return struct {
-        words: [length][length]u8 = undefined,
-
         const Self = @This();
+
+        words: [length][length]u8 = undefined,
 
         fn init(input: []const u8) Self {
             var result = Self{};
@@ -20,6 +20,7 @@ fn Day04(length: usize) type {
 
         fn part1(self: Self) u64 {
             var result: u64 = 0;
+
             for (0..length) |i| { // Horizontal _ and vertical |
                 for (0..(length - 4 + 1)) |j| {
                     const horizontal = .{
@@ -30,10 +31,12 @@ fn Day04(length: usize) type {
                         self.words[j][i],     self.words[j + 1][i],
                         self.words[j + 2][i], self.words[j + 3][i],
                     };
+
                     if (matches("XMAS", &horizontal)) result += 1;
                     if (matches("XMAS", &vertical)) result += 1;
                 }
             }
+
             for (0..(length - 4 + 1)) |i| { // Backward \ and forward / diagonals
                 for (0..(length - 4 + 1)) |j| {
                     const diagonal_backward = .{
@@ -44,10 +47,12 @@ fn Day04(length: usize) type {
                         self.words[i + 3][j],     self.words[i + 2][j + 1],
                         self.words[i + 1][j + 2], self.words[i][j + 3],
                     };
+
                     if (matches("XMAS", &diagonal_backward)) result += 1;
                     if (matches("XMAS", &diagonal_forward)) result += 1;
                 }
             }
+
             return result;
         }
 
@@ -61,6 +66,7 @@ fn Day04(length: usize) type {
                     const diagonal_forward = .{
                         self.words[i + 2][j], self.words[i + 1][j + 1], self.words[i][j + 2],
                     };
+
                     if (matches("MAS", &diagonal_backward) and matches("MAS", &diagonal_forward)) {
                         result += 1;
                     }
