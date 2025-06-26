@@ -3,6 +3,7 @@ const std = @import("std");
 fn Day02(comptime length: usize) type {
     return struct {
         const Self = @This();
+
         const report_capacity = 10;
 
         reports: [length][report_capacity]u8 = undefined,

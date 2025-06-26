@@ -48,6 +48,7 @@ We'll use the same trick we used in day two to parse the updates, which have dif
 fn Day05(length: usize) type {
     return struct {
         const Self = @This();
+
         const max_rule = 100;
         const update_capacity = 30;
 

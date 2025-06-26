@@ -3,6 +3,7 @@ const std = @import("std");
 fn Day05(length: usize) type {
     return struct {
         const Self = @This();
+
         const max_rule = 100;
         const update_capacity = 30;
 
