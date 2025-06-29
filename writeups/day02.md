@@ -93,7 +93,7 @@ fn part1(self: Self) u64 {
 ```
 
 > [!NOTE]
-> Unlike C, Zig doesn't automatically convert `true` to `1` and `false` to `0`. We have to cast it to an integer with `@intFromBool`.
+> Unlike C, Zig doesn't automatically convert `true` to `1` and `false` to `0`. We have to cast it to an integer using `@intFromBool`.
 
 ## Part Two
 

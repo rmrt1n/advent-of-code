@@ -10,8 +10,9 @@ fn Day03() type {
             return Self{ .memory = input };
         }
 
-        // All the input slicing has been manually bound checked by looking at the input file, so
-        // cases like the input ending in `mul` isn't possible.
+        // The array slicing done here is unsafe, but it works on all the sample input and on my
+        // puzzle input, so I'll keep the code as is. I'll just assume this is the case for other
+        // inputs as well.
         fn part1(self: Self) u64 {
             var result: u64 = 0;
 
