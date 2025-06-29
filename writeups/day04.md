@@ -2,11 +2,11 @@
 
 [Full solution](../src/days/day04.zig).
 
-## Part one
+## Puzzle Input
 
-Day four's puzzle is a word search. For part one, we have to count the occurence of the word **`XMAS`** in our puzzle input. The word can be horizontal, vertical, diagonal, and written backwards, for example:
+Today's input is **word search** puzzle:
 
-```
+```plaintext
 MMMSXXMASM
 MSAMXMSMSA
 AMXSXMAAMM
@@ -19,7 +19,7 @@ MAMMMXMMMM
 MXMXAXMASX
 ```
 
-To get started we'll parse this input into a matrix or a 2D grid.
+We'll parse this into a 2D array:
 
 ```zig
 fn Day04(length: usize) type {
@@ -43,11 +43,15 @@ fn Day04(length: usize) type {
 }
 ```
 
-The appoach we'll take for this solution is to iterate over the matrix in all possible directions (horizontal `-`, vertical `|`, backward diagonal `\`, and forward diagonal `/`) in windows of four (the length of `XMAS`). For each window, we'll check if it matches `XMAS` or its reverse `SAMX`.
+## Part One
 
-To illustrate, here are the windows for the index `i, j`:
+We have to count the occurrences of the word **XMAS** in the word search. This word can be horizontal, vertical, diagonal, or written backwards in the word search.
 
-```
+We'll use a sliding 4x4 window for this. For each window, we'll slice it in the four directions (horizontal, vertical, backwards diagonal, and forwards diagonal). For each slice, we'll check whether it contains either `XMAS` or its reverse `SAMX`.
+
+Here's a visualisation of the indexes of a window for the starting position `i,j`:
+
+```plaintext
 ┌─────────┬─────────┬─────────┬─────────┐
 │   i,j   │  i,j+1  │  i,j+2  │  i,j+3  │
 ├─────────┼─────────┼─────────┼─────────┤
@@ -57,15 +61,9 @@ To illustrate, here are the windows for the index `i, j`:
 ├─────────┼─────────┼─────────┼─────────┤
 │  i+3,j  │ i+3,j+1 │ i+3,j+2 │ i+3,j+3 │
 └─────────┴─────────┴─────────┴─────────┘
-
 ```
 
-1. The horizontal window is: `i, j`, `i, j+1`, `i, j+2`, `i, j+3`.
-2. The vertical window is: `i, j`, `i+1, j`, `i+2, j`, `i+3, j`.
-3. The backward diagonal window is: `i, j`, `i+1, j+1`, `i+2, j+2`, `i+3, j+3`.
-4. The forward diagonal window is: `i+3, j`, `i+2, j+1`, `i+1, j+2`, `i, j+3`.
-
-Now to put it in code:
+Here's the code for this:
 
 ```zig
 fn part1(self: Self) u64 {
@@ -107,9 +105,7 @@ fn part1(self: Self) u64 {
 }
 ```
 
-Because we're doing unsafe indexing (with index arithmetics), we have to make sure not to go out of bounds. For the horizontal and vertical windows, we can do this by limiting `j` to be at most N-4. For the diagonals, we have to limit both `i` and `j` to be less then M-4 and N-4 respectively. M is the number of rows, N is the number of columns, and 4 is the length of `XMAS`.
-
-The `matches` function checks if a string matches either `XMAS` or `SAMX`:
+The `matches` function checks if a given string matches a known string or its reversed:
 
 ```zig
 fn matches(comptime word: []const u8, slice: []const u8) bool {
@@ -120,24 +116,19 @@ fn matches(comptime word: []const u8, slice: []const u8) bool {
 }
 ```
 
-Some notes about the `matches` function. Usually, to reverse an arbitrary string you need to dynamically allocate a buffer with the same size as the string which happens at runtime, because the size of the string is unknown at compile time. However, the `XMAS` string is compile-time known, so we can initialize an array with the length of the string. The downside of this is that it'll only work for strings that are the same length as `XMAS`. If we have another string with a different length that we want to check (which we do in part two), we'll have to write another function just to handle that other string.
+The known string `word` must be compile-time known so Zig can statically allocate the array to store its reverse. If the string to find is only known at runtime, we'll have to dynamically allocate the array based on the string's length.
 
-With Zig's comptime, we can write just one function to do this, and Zig will generate the corresponding functions for every string we want to check. The `matches` function above takes in a `word` that is compile-time known (marked by `comptime`). Under the hood, the Zig compiler will create a separate function for every different `word` passed to it.
+## Part Two
 
-E.g. if your code contains `matches("XMAS", slice)` and `matches("A", slice)`, zig will create two functions `matches_anon_random_id1` and `matches_anon_random_id2`. `matches_anon_random_id1` contains a buffer of length four, while `matches_anon_random_id2`'s buffer has a length of one.
+Instead of the word `XMAS`, we have to find all of the **X-MAS**. This is two `MAS` in an X shape, like so:
 
-
-## Part two
-
-In part two, instead of searching for the word `XMAS`, we have to find **two `MAS` in an "X" shape**, like so:
-
-```
-M S
- A
-M S
+```plaintext
+M.S
+.A.
+M.S
 ```
 
-Just like in part one, the `MAS` string can be in reversed order too. Here, we can actually reuse part one's solution with slight tweaks. Now, we only have to check the diagonal windows and check that if both of them contain `MAS`.
+Just like in part one, the word can be written in reverse too. We can reuse most of our part one code for part two. Now, we just have to check the two diagonals for the word `MAS`:
 
 ```zig
 fn part2(self: Self) u64 {
@@ -160,4 +151,27 @@ fn part2(self: Self) u64 {
 }
 ```
 
-## Benchmarks
+> [!TIP]
+> There are two unique strings passed to `matches`. Under the hood, Zig will create two functions. Each function is a version of `match` specifically for each word.
+> ```zig
+> // This is the original function.
+> fn matches(comptime word: []const u8, slice: []const u8) bool {}
+>
+> // Gets compiled to:
+> fn matches__anon_1(comptime word: []const u8, slice: []const u8) bool {
+>   var reversed: [4]u8 = undefined; // "SAMX"
+>   // ...
+> }
+> fn matches__anon_2(comptime word: []const u8, slice: []const u8) bool {
+>   var reversed: [3]u8 = undefined; // "SAM"
+>   // ...
+> }
+> ```
+
+## Benchmark
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |

@@ -78,8 +78,7 @@ fn part1(self: Self) u64 {
 ```
 
 > [!WARNING]
-> Some of the slicing code above (and in part two), e.g. `self.memory[i..(i + 4)]`, is technically unsafe, but this works for my input and the sample inputs, so I'll just leave this as is and assume the other inputs are well-formed enough not to trigger this.
-> If it doesn't work for your input, consider this an an exercise for the reader.
+> Some of the slicing code above (and in part two), e.g. `self.memory[i..(i + 4)]`, is technically unsafe, but this works for my input and the sample inputs, so I'll just leave this as is and assume the other inputs are well-formed enough not to trigger this. If it doesn't work for your input, consider this an an exercise for the reader.
 
 ## Part Two
 
