@@ -4,10 +4,10 @@ fn Day02(comptime length: usize) type {
     return struct {
         const Self = @This();
 
-        const report_capacity = 9;
+        const report_capacity = 8;
 
-        storage: [length][report_capacity]u8 = undefined,
-        reports: [length][]u8 = undefined,
+        reports: [length][report_capacity]u8 = undefined,
+        lengths: [length]u8 = undefined,
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -15,13 +15,12 @@ fn Day02(comptime length: usize) type {
             var i: usize = 0;
             var lexer = std.mem.tokenizeScalar(u8, input, '\n');
             while (lexer.next()) |line| : (i += 1) {
-                var j: usize = 0;
+                var j: u8 = 0;
                 var inner_lexer = std.mem.tokenizeScalar(u8, line, ' ');
                 while (inner_lexer.next()) |number| : (j += 1) {
-                    result.storage[i][j] = try std.fmt.parseInt(u8, number, 10);
+                    result.reports[i][j] = try std.fmt.parseInt(u8, number, 10);
                 }
-
-                result.reports[i] = result.storage[i][0..j];
+                result.lengths[i] = j;
             }
 
             return result;
@@ -29,24 +28,24 @@ fn Day02(comptime length: usize) type {
 
         fn part1(self: Self) u64 {
             var result: u64 = 0;
-            for (self.reports) |report| {
-                result += @intFromBool(is_valid_report(report));
+            for (self.reports, self.lengths) |report, len| {
+                result += @intFromBool(is_valid_report(report[0..len]));
             }
             return result;
         }
 
         fn part2(self: Self) u64 {
             var result: u64 = 0;
-            for (self.reports, 0..) |report, j| {
-                if (is_valid_report(report)) {
+            for (self.reports, self.lengths) |report, len| {
+                if (is_valid_report(report[0..len])) {
                     result += 1;
                     continue;
                 }
 
-                var dampened = self.storage[j];
-                for (0..report.len) |i| {
-                    @memcpy(dampened[(report.len - 1 - i)..], report[(report.len - i)..]);
-                    if (is_valid_report(dampened[0..(report.len - 1)])) {
+                var dampened = report;
+                for (0..len) |i| {
+                    @memcpy(dampened[(len - 1 - i)..(len - 1)], report[(len - i)..len]);
+                    if (is_valid_report(dampened[0..(len - 1)])) {
                         result += 1;
                         break;
                     }

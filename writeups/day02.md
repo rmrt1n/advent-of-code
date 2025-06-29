@@ -17,17 +17,17 @@ Today's input is a list of **reports**:
 
 Each line represents a report and a report is a list of numbers called **levels**. Unlike the example above, the actual input reports can have different numbers of levels.
 
-We'll parse each report into a backing array then create a slice from the array with the length of the report (the number of levels). The backing array needs enough capacity to hold the longest report in the input. In my case, the longest report has eight levels so my report capacity is 9.
+We'll parse the reports into a 2D array and store the lengths in a separate array of the same length. The backing array needs enough capacity to hold the longest report in the input. In my case, the longest report is eight so that is also my report capacity.
 
 ```zig
 fn Day02(comptime length: usize) type {
     return struct {
         const Self = @This();
 
-        const report_capacity = 9;
+        const report_capacity = 8;
 
-        storage: [length][report_capacity]u8 = undefined,
-        reports: [length][]u8 = undefined,
+        reports: [length][report_capacity]u8 = undefined,
+        lengths: [length]u8 = undefined,
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -35,17 +35,17 @@ fn Day02(comptime length: usize) type {
             var i: usize = 0;
             var lexer = std.mem.tokenizeScalar(u8, input, '\n');
             while (lexer.next()) |line| : (i += 1) {
-                var j: usize = 0;
+                var j: u8 = 0;
                 var inner_lexer = std.mem.tokenizeScalar(u8, line, ' ');
                 while (inner_lexer.next()) |number| : (j += 1) {
-                    result.storage[i][j] = try std.fmt.parseInt(u8, number, 10);
+                    result.reports[i][j] = try std.fmt.parseInt(u8, number, 10);
                 }
-
-                result.reports[i] = result.storage[i][0..j];
+                result.lengths[i] = j;
             }
 
             return result;
         }
+
     };
 }
 ```
@@ -85,8 +85,8 @@ Now we just have to iterate over all reports and count the safe levels:
 ```zig
 fn part1(self: Self) u64 {
     var result: u64 = 0;
-    for (self.reports) |report| {
-        result += @intFromBool(is_valid_report(report));
+    for (self.reports, self.lengths) |report, len| {
+        result += @intFromBool(is_valid_report(report[0..len]));
     }
     return result;
 }
@@ -104,16 +104,16 @@ There might be a more elegant way to solve this, but the simplest solution here 
 ```zig
 fn part2(self: Self) u64 {
     var result: u64 = 0;
-    for (self.reports, 0..) |report, j| {
-        if (is_valid_report(report)) {
+    for (self.reports, self.lengths) |report, len| {
+        if (is_valid_report(report[0..len])) {
             result += 1;
             continue;
         }
 
-        var dampened = self.storage[j];
-        for (0..report.len) |i| {
-            @memcpy(dampened[(report.len - 1 - i)..], report[(report.len - i)..]);
-            if (is_valid_report(dampened[0..(report.len - 1)])) {
+        var dampened = report;
+        for (0..len) |i| {
+            @memcpy(dampened[(len - 1 - i)..(len - 1)], report[(len - i)..len]);
+            if (is_valid_report(dampened[0..(len - 1)])) {
                 result += 1;
                 break;
             }
@@ -123,7 +123,7 @@ fn part2(self: Self) u64 {
 }
 ```
 
-For the brute force, we start by copying the original report from `self.storage[i]`. Then we remove the item at index `i` by copying the rest of the slice starting from index `i+1` using `@memcpy`. This effectively removes the item at index `i`. The reason we do this from the end is to avoid overwriting data we need for future iterations.
+For the brute force, we start by copying the original report from `self.reports[i]`. Then we remove the item at index `i` by copying the rest of the slice starting from index `i+1` using `@memcpy`. This effectively removes the item at index `i`. The reason we do this from the end is to avoid overwriting data we need for future iterations.
 
 Here's an example to help you visualise:
 

@@ -66,9 +66,9 @@ fn part1(self: *Self) u64 {
 
 ## Part Two
 
-Now we're asked to find the **similarity score**, which is the sum of each location ID from the left list multiplied by how many times it appears in the right list (it's frequency).
+Now we're asked to find the **similarity score**, which is the sum of each location ID from the left list multiplied by how many times it appears in the right list (its frequency).
 
-We'll keep track of the frequency using an array where each index is a location ID from the left list and its value is its frequency in the right list. We use an array for the mapping instead of a data structure like a hash map `std.AutoHashMap` to avoid dynamic allocation.
+We'll keep track of the frequency using an array where each index is a location ID from the left list and the value is its frequency in the right list. We use an array for the mapping instead of something like a hash map `std.AutoHashMap` to avoid dynamic allocation.
 
 Once we have the frequencies, we just have to sum them:
 
@@ -86,7 +86,7 @@ fn part2(self: Self) u64 {
 }
 ```
 
-We allocated space for 100,000 entries because the location IDs in the input are all five-digit integers. We're wasting a tiny bit of space here as there are only 90,000 five digit numbers (from 10,000 to 99,999), but it lets us index directly using the location ID and keeps the code simpler.
+We allocated space for 100,000 entries because the location IDs in the puzzle input are all five-digit integers. We're wasting a tiny bit of space here as there are only 90,000 five digit numbers (from 10,000 to 99,999), but it lets us index directly using the location ID and keeps the code simpler.
 
 > [!TIP]
 > Whenever possible, prefer static allocation (allocating on the stack) over dynamic allocation (allocating on the heap). Static allocation doesn't have allocator overhead, has better [cache locality](https://stackoverflow.com/questions/12065774/why-does-cache-locality-matter-for-array-performance#12065801), and keeps memory usage predictable. 
