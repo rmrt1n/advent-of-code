@@ -4,9 +4,10 @@ fn Day02(comptime length: usize) type {
     return struct {
         const Self = @This();
 
-        const report_capacity = 10;
+        const report_capacity = 9;
 
-        reports: [length][report_capacity]u8 = undefined,
+        storage: [length][report_capacity]u8 = undefined,
+        reports: [length][]u8 = undefined,
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -14,12 +15,13 @@ fn Day02(comptime length: usize) type {
             var i: usize = 0;
             var lexer = std.mem.tokenizeScalar(u8, input, '\n');
             while (lexer.next()) |line| : (i += 1) {
-                var j: usize = 1;
+                var j: usize = 0;
                 var inner_lexer = std.mem.tokenizeScalar(u8, line, ' ');
                 while (inner_lexer.next()) |number| : (j += 1) {
-                    result.reports[i][j] = try std.fmt.parseInt(u8, number, 10);
+                    result.storage[i][j] = try std.fmt.parseInt(u8, number, 10);
                 }
-                result.reports[i][0] = @intCast(j - 1);
+
+                result.reports[i] = result.storage[i][0..j];
             }
 
             return result;
@@ -28,25 +30,23 @@ fn Day02(comptime length: usize) type {
         fn part1(self: Self) u64 {
             var result: u64 = 0;
             for (self.reports) |report| {
-                result += @intFromBool(is_valid_report(&report));
+                result += @intFromBool(is_valid_report(report));
             }
             return result;
         }
 
         fn part2(self: Self) u64 {
             var result: u64 = 0;
-            for (self.reports) |report| {
-                if (is_valid_report(&report)) {
+            for (self.reports, 0..) |report, j| {
+                if (is_valid_report(report)) {
                     result += 1;
                     continue;
                 }
 
-                for (1..(report[0] + 1)) |i| {
-                    var dampened = report;
-                    dampened[0] -= 1;
-                    @memcpy(dampened[i..9], report[(i + 1)..]);
-
-                    if (is_valid_report(&dampened)) {
+                var dampened = self.storage[j];
+                for (0..report.len) |i| {
+                    @memcpy(dampened[(report.len - 1 - i)..], report[(report.len - i)..]);
+                    if (is_valid_report(dampened[0..(report.len - 1)])) {
                         result += 1;
                         break;
                     }
@@ -56,14 +56,15 @@ fn Day02(comptime length: usize) type {
         }
 
         fn is_valid_report(report: []const u8) bool {
-            const is_increasing = report[1] < report[2];
+            const is_increasing = report[0] < report[1];
 
-            for (1..(report[0])) |i| {
-                const larger = if (is_increasing) report[i + 1] else report[i];
-                const lesser = if (is_increasing) report[i] else report[i + 1];
+            var window = std.mem.window(u8, report, 2, 1);
+            while (window.next()) |pair| {
+                const larger = if (is_increasing) pair[1] else pair[0];
+                const lesser = if (is_increasing) pair[0] else pair[1];
 
-                const diff = @as(i16, larger) - lesser;
-                if (diff < 1 or diff > 3) return false;
+                const difference = @as(i16, larger) - lesser;
+                if (difference < 1 or difference > 3) return false;
             }
 
             return true;

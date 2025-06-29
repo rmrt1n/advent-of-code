@@ -42,7 +42,7 @@ fn Day01(comptime length: usize) type {
 }
 ```
 
-## Part one
+## Part One
 
 We're asked to find the **total distance** between the two lists. The total distance is the sum of the absolute difference of each pair of location IDs from the two lists sorted.
 
@@ -64,13 +64,13 @@ fn part1(self: *Self) u64 {
 > [!NOTE]
 > We cast `x` into a `i64` before calculating the difference or else it will overflow and give us the wrong answer. The return type of `@abs` is the unsigned version of the integer type passed to it. In the code above, since the input is `i64`, the output is a `u64`.
 
-## Part two
+## Part Two
 
 Now we're asked to find the **similarity score**, which is the sum of each location ID from the left list multiplied by how many times it appears in the right list (it's frequency).
 
 We'll keep track of the frequency using an array where each index is a location ID from the left list and its value is its frequency in the right list. We use an array for the mapping instead of a data structure like a hash map `std.AutoHashMap` to avoid dynamic allocation.
 
-We allocate space for 100,000 entries because the location IDs in the input are all five-digit integers. We're wasting a tiny bit of space here as there are only 90,000 five digit numbers (from 10,000 to 99,999), but it lets us index directly using the location ID and keeps the code simpler.
+Once we have the frequencies, we just have to sum them:
 
 ```zig
 fn part2(self: Self) u64 {
@@ -86,10 +86,12 @@ fn part2(self: Self) u64 {
 }
 ```
 
+We allocated space for 100,000 entries because the location IDs in the input are all five-digit integers. We're wasting a tiny bit of space here as there are only 90,000 five digit numbers (from 10,000 to 99,999), but it lets us index directly using the location ID and keeps the code simpler.
+
 > [!TIP]
 > Whenever possible, prefer static allocation (allocating on the stack) over dynamic allocation (allocating on the heap). Static allocation doesn't have allocator overhead, has better [cache locality](https://stackoverflow.com/questions/12065774/why-does-cache-locality-matter-for-array-performance#12065801), and keeps memory usage predictable. 
 
-## Benchmarks
+## Benchmark
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
