@@ -21,13 +21,12 @@ fn Day01(comptime length: usize) type {
             return result;
         }
 
-        fn part1(self: Self) u64 {
-            var sorted = self;
-            std.mem.sort(u32, &sorted.left, {}, std.sort.asc(u32));
-            std.mem.sort(u32, &sorted.right, {}, std.sort.asc(u32));
+        fn part1(self: *Self) u64 {
+            std.mem.sort(u32, &self.left, {}, std.sort.asc(u32));
+            std.mem.sort(u32, &self.right, {}, std.sort.asc(u32));
 
             var result: u64 = 0;
-            for (sorted.left, sorted.right) |x, y| {
+            for (self.left, self.right) |x, y| {
                 result += @abs(@as(i64, x) - y);
             }
             return result;

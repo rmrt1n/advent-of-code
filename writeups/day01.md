@@ -2,11 +2,11 @@
 
 [Full solution](../src/days/day01.zig).
 
-## Part one
+## Puzzle input
 
-We're asked to find the **total distance** from two lists of location IDs that are placed side-by-side in our puzzle input, which looks like:
+Today's input is a two-column list of **location IDs**:
 
-```
+```plaintext
 3   4
 4   3
 2   5
@@ -15,9 +15,7 @@ We're asked to find the **total distance** from two lists of location IDs that a
 3   3
 ```
 
-The total distance is the sum of the absolute difference of each pair of location IDs from the two lists sorted. It doesn't matter which direction the lists are sorted as long as both of them are sorted in the same direction.
-
-To get started, we'll parse the input into two arrays `left` and `right`. We'll be using Zig's builtin tokenizer for this:
+We'll parse the input into two arrays using the tokeniser `std.TokenIterator` from Zig's standard library.
 
 ```zig
 fn Day01(comptime length: usize) type {
@@ -44,13 +42,16 @@ fn Day01(comptime length: usize) type {
 }
 ```
 
-To solve part one, we'll sort the arrays in first before iterating over both of them. Then, we'll calculate the absolute difference of each pair, and sum them all up to get the answer for part one.
+## Part one
+
+We're asked to find the **total distance** between the two lists. The total distance is the sum of the absolute difference of each pair of location IDs from the two lists sorted.
+
+This is simple enough to implement, here's the code for part one:
 
 ```zig
-fn part1(self: Self) u64 {
-    var sorted = self;
-    std.mem.sort(u32, &sorted.left, {}, std.sort.asc(u32));
-    std.mem.sort(u32, &sorted.right, {}, std.sort.asc(u32));
+fn part1(self: *Self) u64 {
+    std.mem.sort(u32, &self.left, {}, std.sort.asc(u32));
+    std.mem.sort(u32, &self.right, {}, std.sort.asc(u32));
 
     var result: u64 = 0;
     for (self.left, self.right) |x, y| {
@@ -60,13 +61,16 @@ fn part1(self: Self) u64 {
 }
 ```
 
+> [!NOTE]
+> We cast `x` into a `i64` before calculating the difference or else it will overflow and give us the wrong answer. The return type of `@abs` is the unsigned version of the integer type passed to it. In the code above, since the input is `i64`, the output is a `u64`.
+
 ## Part two
 
-For part two, we're asked for the **similarity score**, which is the sum of each number (location ID) in the left list multiplied by its frequency in the right list. In other words, we have to count how many times a number in the left list appears in the right list.
+Now we're asked to find the **similarity score**, which is the sum of each location ID from the left list multiplied by how many times it appears in the right list (it's frequency).
 
-We can do this with a hashmap, e.g. Zig's `std.AutoHashmap`, but since the location IDs have at most five digits (from inspecting the input file) we can just use a regular array of size 100,000 (to hold all five digit numbers). `std.AutoHashmap` does dynamic allocation, which will slow down our solution a bit, though the difference is negligible in day one.
+We'll keep track of the frequency using an array where each index is a location ID from the left list and its value is its frequency in the right list. We use an array for the mapping instead of a data structure like a hash map `std.AutoHashMap` to avoid dynamic allocation.
 
-// TODO: github callout for 100,000 vs 99,999 - 10,000 + 1
+We allocate space for 100,000 entries because the location IDs in the input are all five-digit integers. We're wasting a tiny bit of space here as there are only 90,000 five digit numbers (from 10,000 to 99,999), but it lets us index directly using the location ID and keeps the code simpler.
 
 ```zig
 fn part2(self: Self) u64 {
@@ -82,6 +86,13 @@ fn part2(self: Self) u64 {
 }
 ```
 
-Once we have the frequencies in the array, we can iterate over each number in the `left` array and calculate the similarity score. Sum it all up to get the answer for part two.
+> [!TIP]
+> Whenever possible, prefer static allocation (allocating on the stack) over dynamic allocation (allocating on the heap). Static allocation doesn't have allocator overhead, has better [cache locality](https://stackoverflow.com/questions/12065774/why-does-cache-locality-matter-for-array-performance#12065801), and keeps memory usage predictable. 
 
 ## Benchmarks
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |
