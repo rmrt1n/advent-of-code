@@ -1,4 +1,119 @@
 const std = @import("std");
+const builtin = @import("builtin");
+
+fn Day06(comptime length: usize) type {
+    return struct {
+        const Self = @This();
+
+        const map_size = length + 2; // Add borders
+
+        map: [map_size][map_size]Tile = .{.{Tile.init(.exit)} ** map_size} ** map_size,
+        position: @Vector(2, i16) = undefined,
+        direction: Direction = .up,
+
+        fn init(input: []const u8) Self {
+            var result = Self{};
+
+            var i: usize = 1;
+            var lexer = std.mem.tokenizeScalar(u8, input, '\n');
+            while (lexer.next()) |line| : (i += 1) {
+                for (line, 1..) |tile, j| {
+                    switch (tile) {
+                        '#' => result.map[i][j] = Tile.init(.obstacle),
+                        '.' => result.map[i][j] = Tile.init(.path),
+                        '^' => {
+                            result.map[i][j] = Tile.init(.path);
+                            result.position = .{ @intCast(i), @intCast(j) };
+                        },
+                        else => unreachable,
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        fn part1(self: Self) u64 {
+            // std.debug.print("sest: {}\n", .{@sizeOf(Tile)});
+            var result: u64 = 0;
+            // Copy by value because we still need the original map for part two.
+            var simulation = self;
+
+            while (true) {
+                switch (simulation.get_tile().type) {
+                    .obstacle => {
+                        simulation.position -= simulation.direction.vector();
+                        simulation.direction = simulation.direction.rotate();
+                    },
+                    .path => {
+                        simulation.set_tile(Tile.init(.visited));
+                        result += 1;
+                    },
+                    .visited => {},
+                    .exit => break,
+                }
+                simulation.position += simulation.direction.vector();
+            }
+
+            return result;
+        }
+
+        fn part2(self: *Self) u64 {
+            std.debug.print("{b:0>8}\n", .{@as(u8, @bitCast(Tile.init(.exit).visit(.up)))});
+            var result: u64 = 0;
+
+            self.position += self.direction.vector();
+
+            while (true) {
+                switch (self.get_tile().type) {
+                    .obstacle => {
+                        self.position -= self.direction.vector();
+                        self.direction = self.direction.rotate();
+                    },
+                    .path => {
+                        var simulation = self.*;
+
+                        simulation.set_tile(Tile.init(.obstacle));
+
+                        while (true) {
+                            const inner_tile = simulation.get_tile();
+                            switch (inner_tile.type) {
+                                .exit => break,
+                                .obstacle => {
+                                    simulation.position -= simulation.direction.vector();
+                                    simulation.direction = simulation.direction.rotate();
+                                },
+                                else => {
+                                    if (inner_tile.has_visited(simulation.direction)) {
+                                        result += 1;
+                                        break;
+                                    }
+
+                                    simulation.set_tile(inner_tile.visit(simulation.direction));
+                                    simulation.position += simulation.direction.vector();
+                                },
+                            }
+                        }
+                        self.set_tile(Tile.init(.visited));
+                    },
+                    .visited => {},
+                    .exit => break,
+                }
+                self.position += self.direction.vector();
+            }
+
+            return result;
+        }
+
+        fn get_tile(self: Self) Tile {
+            return self.map[@intCast(self.position[0])][@intCast(self.position[1])];
+        }
+
+        fn set_tile(self: *Self, tile: Tile) void {
+            self.map[@intCast(self.position[0])][@intCast(self.position[1])] = tile;
+        }
+    };
+}
 
 const Direction = enum {
     up,
@@ -15,7 +130,7 @@ const Direction = enum {
         return @enumFromInt((@as(u8, @intFromEnum(direction)) + 1) % 4);
     }
 
-    // This'll return:
+    // This returns:
     // .up    => 1000
     // .right => 0100
     // .down  => 0010
@@ -25,112 +140,37 @@ const Direction = enum {
     }
 };
 
-// Pseudo-enum because enums can't be mutated (in part two).
-const obstacle: u8 = 0;
-const path: u8 = 1;
-const visited: u8 = 2;
-const exit: u8 = 3;
+const Tile = packed struct(u8) {
+    const TileType = enum(u4) { obstacle, path, visited, exit };
 
-fn Day06(comptime length: usize) type {
-    return struct {
-        map: [length + 2][length + 2]u8 = .{.{exit} ** (length + 2)} ** (length + 2),
-        position: @Vector(2, i16) = undefined,
-        direction: Direction = .up,
+    const endian = builtin.target.cpu.arch.endian();
 
-        const Self = @This();
+    up: u1 = 0,
+    right: u1 = 0,
+    down: u1 = 0,
+    left: u1 = 0,
+    type: TileType,
 
-        fn init(input: []const u8) Self {
-            var result = Self{};
+    fn init(tile_type: TileType) Tile {
+        return Tile{ .type = tile_type };
+    }
 
-            var i: usize = 1;
-            var lexer = std.mem.tokenizeScalar(u8, input, '\n');
-            while (lexer.next()) |line| : (i += 1) {
-                for (line, 1..) |tile, j| {
-                    switch (tile) {
-                        '#' => result.map[i][j] = obstacle,
-                        '.' => result.map[i][j] = path,
-                        '^' => {
-                            result.map[i][j] = path;
-                            result.position = .{ @intCast(i), @intCast(j) };
-                        },
-                        else => unreachable,
-                    }
-                }
-            }
+    fn visit(self: Tile, direction: Direction) Tile {
+        const mask: u8 = if (endian == .big) direction.mask() << 4 else direction.mask();
+        const int_self = &@as(u8, @bitCast(self));
 
-            return result;
-        }
+        var result = @as(Tile, @bitCast(int_self.* | mask));
+        result.type = .visited;
+        return result;
+    }
 
-        fn part1(self: Self) u64 {
-            var result: u64 = 0;
-            var simulation = self; // This is a copy by value
-            while (simulation.get_tile() != exit) {
-                switch (simulation.get_tile()) {
-                    obstacle => {
-                        simulation.position -= simulation.direction.vector();
-                        simulation.direction = simulation.direction.rotate();
-                    },
-                    path => {
-                        simulation.set_tile(visited);
-                        result += 1;
-                    },
-                    visited => {},
-                    else => unreachable,
-                }
-                simulation.position += simulation.direction.vector();
-            }
-            return result;
-        }
-
-        fn part2(self: Self) u64 {
-            var result: u64 = 0;
-            var simulation = self;
-            while (simulation.get_tile() != exit) {
-                switch (simulation.get_tile()) {
-                    obstacle => {
-                        simulation.position -= simulation.direction.vector();
-                        simulation.direction = simulation.direction.rotate();
-                    },
-                    path => {
-                        var time_loop = simulation;
-                        time_loop.set_tile(obstacle);
-
-                        // For some reason incrementing `time_loop.position` with a `while (): ()`
-                        // causes a 2x slowdown.
-                        while (time_loop.get_tile() != exit) {
-                            const current = time_loop.get_tile();
-                            if (current == obstacle) {
-                                time_loop.position -= time_loop.direction.vector();
-                                time_loop.direction = time_loop.direction.rotate();
-                            } else {
-                                const mask = time_loop.direction.mask();
-                                if (current >> 4 & mask == mask) {
-                                    result += 1;
-                                    break;
-                                }
-                                time_loop.set_tile(current | @as(u8, mask) << 4);
-                                time_loop.position += time_loop.direction.vector();
-                            }
-                        }
-                        simulation.set_tile(visited);
-                    },
-                    visited => {},
-                    else => unreachable,
-                }
-                simulation.position += simulation.direction.vector();
-            }
-            return result;
-        }
-
-        fn get_tile(self: Self) u8 {
-            return self.map[@intCast(self.position[0])][@intCast(self.position[1])];
-        }
-
-        fn set_tile(self: *Self, tile: u8) void {
-            self.map[@intCast(self.position[0])][@intCast(self.position[1])] = tile;
-        }
-    };
-}
+    fn has_visited(self: Tile, direction: Direction) bool {
+        const mask = direction.mask();
+        const int_self = @as(u8, @bitCast(self));
+        const bits = if (endian == .big) int_self >> 4 else int_self & 0xff;
+        return bits & mask == mask;
+    }
+};
 
 pub const title = "Day 06: Guard Gallivant";
 
@@ -138,7 +178,7 @@ pub fn run(_: std.mem.Allocator, is_run: bool) ![3]u64 {
     var timer = try std.time.Timer.start();
 
     const input = @embedFile("./data/day06.txt");
-    const puzzle = Day06(130).init(input);
+    var puzzle = Day06(130).init(input);
     const time0 = timer.read();
 
     const result1 = puzzle.part1();
