@@ -57,10 +57,9 @@ fn Day02(comptime length: usize) type {
         fn is_valid_report(report: []const u8) bool {
             const is_increasing = report[0] < report[1];
 
-            var window = std.mem.window(u8, report, 2, 1);
-            while (window.next()) |pair| {
-                const larger = if (is_increasing) pair[1] else pair[0];
-                const lesser = if (is_increasing) pair[0] else pair[1];
+            for (1..report.len) |i| {
+                const larger = if (is_increasing) report[i] else report[i - 1];
+                const lesser = if (is_increasing) report[i - 1] else report[i];
 
                 const difference = @as(i16, larger) - lesser;
                 if (difference < 1 or difference > 3) return false;

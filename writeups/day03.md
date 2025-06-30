@@ -144,7 +144,7 @@ fn part2(self: Self) u64 {
 > integer         = digit , { digit } ;
 > digit           = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 > garbage         = ? any unexpected or malformed character ? ;
-> ``` 
+> ```
 ## Benchmark
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).

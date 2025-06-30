@@ -50,7 +50,8 @@ fn Day02(comptime length: usize) type {
 }
 ```
 
-
+> [!NOTE]
+> Your `report_capacity` might be different than mine. Please adjust this according to your input file.
 
 ## Part One
 
@@ -65,10 +66,9 @@ First, we'll create a function to check whether a report is safe based on the ab
 fn is_valid_report(report: []const u8) bool {
     const is_increasing = report[0] < report[1];
 
-    var window = std.mem.window(u8, report, 2, 1);
-    while (window.next()) |pair| {
-        const larger = if (is_increasing) pair[1] else pair[0];
-        const lesser = if (is_increasing) pair[0] else pair[1];
+    for (0..(report.len - 1)) |i| {
+        const larger = if (is_increasing) report[i + 1] else report[i];
+        const lesser = if (is_increasing) report[i] else report[i + 1];
 
         const difference = @as(i16, larger) - lesser;
         if (difference < 1 or difference > 3) return false;
@@ -78,7 +78,7 @@ fn is_valid_report(report: []const u8) bool {
 }
 ```
 
-This function uses a sliding window `std.mem.WindowIterator` to check each pair of adjacent levels. First it determines the direction (increasing or decreasing) based on the first two elements. Then, it checks if every adjacent level follows the same direction and that the difference is within the allowed range. If any pair violates this rule, we have found an unsafe report.
+This function uses a sliding window to check pairs of adjacent levels. First it determines the direction (increasing or decreasing) based on the first two elements. Then, it checks if every adjacent level follows the same direction and that the difference is within the allowed range. If any pair violates this rule, we have found an unsafe report.
 
 Now we just have to iterate over all reports and count the safe levels:
 
@@ -129,7 +129,7 @@ Here's an example to help you visualise:
 
 ```plaintext
 Original: [1, 2, 3, 4, 5, 6]
-Remove 6: [1, 2, 3, 4, 5, 6] 
+Remove 6: [1, 2, 3, 4, 5, 6]
 Remove 5: [1, 2, 3, 4, 6, 6]
 Remove 4: [1, 2, 3, 5, 6, 6]
 Remove 3: [1, 2, 4, 5, 6, 6]

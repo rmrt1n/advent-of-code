@@ -4,11 +4,12 @@ fn Day05(length: usize) type {
     return struct {
         const Self = @This();
 
-        const max_rule = 100;
-        const update_capacity = 30;
+        const rule_capacity = 100;
+        const update_capacity = 23;
 
-        rules: [max_rule][max_rule]bool = .{.{false} ** max_rule} ** max_rule,
+        rules: [rule_capacity][rule_capacity]bool = .{.{false} ** rule_capacity} ** rule_capacity,
         updates: [length][update_capacity]u8 = undefined,
+        lengths: [length]u8 = undefined,
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -26,12 +27,12 @@ fn Day05(length: usize) type {
             while (lexer.next()) |line| : (i += 1) {
                 if (line.len == 0) break; // Last newline
 
-                var j: usize = 1;
+                var j: u8 = 0;
                 var inner_lexer = std.mem.tokenizeScalar(u8, line, ',');
                 while (inner_lexer.next()) |number| : (j += 1) {
                     result.updates[i][j] = try std.fmt.parseInt(u8, number, 10);
                 }
-                result.updates[i][0] = @intCast(j - 1);
+                result.lengths[i] = j;
             }
 
             return result;
@@ -39,9 +40,9 @@ fn Day05(length: usize) type {
 
         fn part1(self: Self) u64 {
             var result: u64 = 0;
-            for (self.updates) |update| {
-                if (std.sort.isSorted(u8, update[1..(update[0] + 1)], &self, sort_topological)) {
-                    result += update[update[0] / 2 + 1];
+            for (self.updates, self.lengths) |update, len| {
+                if (std.sort.isSorted(u8, update[0..len], &self, sort_topological)) {
+                    result += update[len / 2];
                 }
             }
             return result;
@@ -49,11 +50,11 @@ fn Day05(length: usize) type {
 
         fn part2(self: Self) u64 {
             var result: u64 = 0;
-            for (self.updates) |update| {
-                if (!std.sort.isSorted(u8, update[1..(update[0] + 1)], &self, sort_topological)) {
+            for (self.updates, self.lengths) |update, len| {
+                if (!std.sort.isSorted(u8, update[0..len], &self, sort_topological)) {
                     var mutable = update;
-                    std.mem.sort(u8, mutable[1..(update[0] + 1)], &self, sort_topological);
-                    result += mutable[update[0] / 2 + 1];
+                    std.mem.sort(u8, mutable[0..len], &self, sort_topological);
+                    result += mutable[len / 2];
                 }
             }
             return result;

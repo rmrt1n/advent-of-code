@@ -63,7 +63,7 @@ Here's a visualisation of the indexes of a window for the starting position `i,j
 └─────────┴─────────┴─────────┴─────────┘
 ```
 
-Here's the code for this:
+Here's the code to count `XMAS` using sliding windows:
 
 ```zig
 fn part1(self: Self) u64 {

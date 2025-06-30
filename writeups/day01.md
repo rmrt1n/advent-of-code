@@ -89,7 +89,7 @@ fn part2(self: Self) u64 {
 We allocated space for 100,000 entries because the location IDs in the puzzle input are all five-digit integers. We're wasting a tiny bit of space here as there are only 90,000 five digit numbers (from 10,000 to 99,999), but it lets us index directly using the location ID and keeps the code simpler.
 
 > [!TIP]
-> Whenever possible, prefer static allocation (allocating on the stack) over dynamic allocation (allocating on the heap). Static allocation doesn't have allocator overhead, has better [cache locality](https://stackoverflow.com/questions/12065774/why-does-cache-locality-matter-for-array-performance#12065801), and keeps memory usage predictable. 
+> Whenever possible, prefer static allocation (allocating on the stack) over dynamic allocation (allocating on the heap). Static allocation doesn't have allocator overhead, has better [cache locality](https://stackoverflow.com/questions/12065774/why-does-cache-locality-matter-for-array-performance#12065801), and keeps memory usage predictable.
 
 ## Benchmark
 
