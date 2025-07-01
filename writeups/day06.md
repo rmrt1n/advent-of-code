@@ -4,7 +4,7 @@
 
 ## Puzzle Input
 
-Today's input is a 2D map of a manufacturing lab:
+Today's input is a 2D map of a **manufacturing lab**:
 
 ```plaintext
 ....#.....
@@ -196,10 +196,10 @@ const Tile = enum { obstacle, path, visited, exit };
 This is what each tile looks like in binary representation:
 
 ```plaintext
-.obstacle -> `00000000
-.path     -> `00000001
-.visited  -> `00000010
-.path     -> `00000011
+.obstacle -> 00000000
+.path     -> 00000001
+.visited  -> 00000010
+.path     -> 00000011
 ```
 
 As you can see, the upper six bits are unused. You only need two bits to represent tiles. We can use this extra space to store metadata about the directions we visited the tiles from. This was the reason why `Tile` uses a packed struct instead of an enum. Here's the refactored definition:

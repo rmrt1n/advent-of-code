@@ -2,11 +2,11 @@
 
 [Full solution](../src/days/day07.zig).
 
-## Part one
+## Puzzle Input
 
-Day seven is a combinatorics problem, which means there'll be backtracking, recursion, or dynamic programming. At least that's how it is in LeetCode. We're given a list of equations with their **operators removed**:
+Today's input is a list of **calibration equations** with their operators removed:
 
-```
+```plaintext
 190: 10 19
 3267: 81 40 27
 83: 17 5
@@ -15,20 +15,21 @@ Day seven is a combinatorics problem, which means there'll be backtracking, recu
 161011: 16 10 13
 192: 17 8 14
 21037: 9 7 18 13
-292: 11 6 16 20`
+292: 11 6 16 20
 ```
 
-Each line is an equation, with the result being the first number in each line. After the colon are the operands used in the equation to equal the result. There are two types of operators, **add `+`** and **multiply `*`**. **Operators are always evaluated from left-to-right**, so we don't have to worry about precedence.
-
-We'll start by parsing the input:
+Each line represents an equation with the **test value** on the left of the colon `:` and the **operands** on the right. We'll parse the test values and the operands into separate arrays. Since each equation can have different numbers of operands, we'll parse the values into a fixed-capacity 2D array and store the lengths in a separate array (just like in day five).
 
 ```zig
 fn Day07(length: usize) type {
     return struct {
-        results: [length]u64 = undefined,
-        operands: [length][16]u16 = .{.{0} ** 16} ** length,
-
         const Self = @This();
+
+        const operand_capacity = 12;
+
+        test_values: [length]u64 = undefined,
+        operands: [length][operand_capacity]u16 = undefined,
+        lengths: [length]u8 = undefined,
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -39,13 +40,13 @@ fn Day07(length: usize) type {
                 var inner_lexer = std.mem.tokenizeScalar(u8, line, ' ');
 
                 const left = inner_lexer.next().?;
-                result.results[i] = try std.fmt.parseInt(u64, left[0..(left.len - 1)], 10);
+                result.test_values[i] = try std.fmt.parseInt(u64, left[0..(left.len - 1)], 10);
 
-                var j: usize = 1;
+                var j: u8 = 0;
                 while (inner_lexer.next()) |number| : (j += 1) {
                     result.operands[i][j] = try std.fmt.parseInt(u16, number, 10);
                 }
-                result.operands[i][0] = @intCast(j - 1);
+                result.lengths[i] = j;
             }
 
             return result;
@@ -54,9 +55,16 @@ fn Day07(length: usize) type {
 }
 ```
 
-We'll use two arrays, one to store the results and another one to store the operands. We'll use the same technique as day two and day five to parse the operands.
+> [!NOTE]
+> The longest equation operands in my input is 12. This value might be different depending on your input. Please adjust the value of your `operand_capacity` accordingly.
 
-For part one (and spoilers, part two too), we have to find only the equations that can be made true using the given operators. We'll do this by computing all the possible combination and permutation of the operators for each equation. We'll implement a `is_valid_equation` for this, but before that we'll first define a type for the operators.
+## Part One
+
+For part one we have to count the **total calibration result**. This is the sum of the test values of the equations that could possibly be true.
+
+An equation can be true if by adding the missing operators, the resulting equation would result in the actual test value. There are two types of operators: addition `+` and multiplication `*`. Operators are always evaluated from left to right.
+
+What we have to do here is to try every permutation of operators on an equation and check if any permutation results in the test value. First, we'll define a type for the operators:
 
 ```zig
 const Operator = enum {
@@ -71,59 +79,31 @@ const Operator = enum {
 };
 ```
 
-The `Operator` enum has a `apply` method that for applying the operator on two operands. As for the `is_valid_equation` function, it'll follow a similar pattern as backtracking/DFS functions:
+The `apply` method returns the result of applying an operator to two operands.
 
-1. Initialize a buffer to hold the intermediate results.
-2. For each item in the buffer, apply the operator on the next operand and push it into the buffer.
-3. Repeat until we have no more operands left.
-
-Here's a visualization of the algorithm in pseudocode, with `60` as the result and `[3, 4, 5]` as the operands:
-
-```python
-# We start with the first operand in the buffer (queue).
-buffer = [3]
-
-# Iteration 1, next operand is 4.
-buffer = [3]
-# For each item in the buffer and each operator, apply it and insert the result into the buffer.
-buffer.push(3 + 4)
-buffer.push(3 * 4)
-
-# Iteration 2, next operand is 5.
-buffer = [7, 12]
-# For each item in the buffer and each operator apply it and insert the result into the buffer.
-buffer.push(7 + 5)
-buffer.push(7 * 5)
-buffer.push(12 + 5)
-buffer.push(12 * 5)
-
-# We're done, the buffer is now:
-buffer = [12, 35, 17, 60]
-
-# Since it contains the result `60`, it's valid equation. Of course we don't have to make it until the end of the operands. If we find it early, we'll just return early from the function.
-```
-
-Here is the algorithm translated to Zig code:
+Next, we'll write a function to check if a given equation is valid:
 
 ```zig
-fn is_valid_equation(result: u64, operands: []const u16, comptime operators: []const Operator) bool {
-    const n = operators.len;
-    var permutations: [(std.math.pow(u64, n, 12) - 1) / (n - 1)]u64 = undefined;
-    permutations[0] = operands[1];
+fn is_valid_equation(
+    permutations: []u64,
+    test_value: u64,
+    operands: []const u16,
+    comptime operators: []const Operator,
+) bool {
+    permutations[0] = operands[0];
 
     var left: usize = 0;
     var right: usize = 1;
-    for (operands[2..(operands[0] + 1)]) |operand| {
-        const old_right = right;
-        while (left < old_right) : (left += 1) {
+    for (operands[1..]) |operand| {
+        const permutations_length = right;
+        while (left < permutations_length) : (left += 1) {
             for (operators) |operator| {
                 const applied = operator.apply(permutations[left], operand);
 
-                if (applied == result) return true;
+                if (applied == test_value) return true;
 
-                // Don't include numbers larger than the result, it is a waste of computation.
-                // Adding this line results in a roughly 1.3x speedup.
-                if (applied > result) continue;
+                // Skip numbers larger than the test value.
+                if (applied > test_value) continue;
 
                 permutations[right] = applied;
                 right += 1;
@@ -135,56 +115,46 @@ fn is_valid_equation(result: u64, operands: []const u16, comptime operators: []c
 }
 ```
 
-Okay, this looks a bit different than the pseudocode. The pseudocode from before uses a queue as the buffer, which can be implemented using `std.ArrayList` in Zig. It uses dynamic allocation though, which I wanted to avoid. There's also `std.PriorityDequeue` which could work, but I haven't tried it yet so I don't have much to say about it.
+`is_valid_equation` tries all possible ways to combine the operators from `operators` and keeps track of the intermediate results in `permutations`.  The `permutations` array acts like a pseudo-queue by using a two-pointers technique to process only the "active" window.
 
-Here, instead of `std.ArrayList` I used a make-shift queue using an array with a big enough capacity to hold all of the permutations. Then, I keep track of the start and end of the "queue" using the `left` and `right` variables which holds the first and last index of the "queue". Here's a visualization based on the previous example:
+`permutations` must have enough capacity to store all intermediate results for a given operands list. We create this array once in the caller and reuse it for subsequent calls. This is safe because we overwrite the contents each time. This avoids the overhead of recreating the array inside `is_valid_equation` every time we call it.
 
-```python
-# Starting state
-buffer = [3, ..........extra space]
-left = 0
-right = 1
-
-# First iteration with the operand 4.
-buffer = [3, 7, 12, ..........extra space]
-left = 1
-right = 3
-
-# Last iteration with the operand 5.
-buffer = [3, 7, 12, 12, 35, 17, 60, ..........extra space]
-left = 3
-right = 7
-```
-
-This code is a bit more complex, but results in around 4x speed up on my machine because we don't dynamically allocate memory. Here, I used `(std.math.pow(u64, n, 12) - 1) / (n - 1)` as the size of the array. This is the minimum capacity of the array to be able to hold all permutations from my puzzle input. Here's how this number is derrived:
-
-1. Each iteration, the number of "active" items in the queue becomes $r^k$, where $r$ is the number of operators and $k$ is the current number of operands processed.
-2. Therefore the minimum size needed is the sum of the geometric series $a + ar + ar^2 + ... + ar^n$, where:
-    - $a$ is the first term (1).
-    - $r$ is the common ratio, which in this case is the number of operators (2).
-    - $n$ is the number of terms (11). In my input, the longest operands sequence is 12, which means the longest combination of operators is 11.
-3. The equation for the sum of the series until term $n$ is:
-
-$$ \sum_{k=0}^{n-1} a r^k = a \frac{r^n - 1}{r - 1}, \quad r \neq 1 $$
-
-At this point it's just me nerding out sorry.., let's get back to the main point, the solution to part one. The heavy lifting is already done by `is_valid_equation`, the code for part one is simple:
+Here's the code for part one:
 
 ```zig
 fn part1(self: Self) u64 {
+    const operators = [_]Operator{ .add, .mul };
+    const n = operators.len;
+    var permutations: [(std.math.pow(u64, n, operand_capacity) - 1) / (n - 1)]u64 = undefined;
+
     var result: u64 = 0;
-    for (self.results, 0..) |answer, i| {
-        const operators = [_]Operator{ .add, .mul };
-        if (is_valid_equation(answer, &self.operands[i], &operators)) {
-            result += answer;
+    for (self.test_values, self.operands, self.lengths) |test_value, operands, len| {
+        if (is_valid_equation(&permutations, test_value, operands[0..len], &operators)) {
+            result += test_value;
         }
     }
     return result;
 }
 ```
 
-## Part two
+> [!TIP]
+> The minimum capacity of the `permutations` is the sum of the geometric series $a + ar + ar^2 + ... + ar^n$:
+>
+> $$ \sum_{k=0}^{n-1} a r^k = a \frac{r^n - 1}{r - 1}, \quad r \neq 1 $$
+>
+> Where:
+>
+> - $a$ is the first term (1).
+> - $r$ is the common ratio, which in this case is the number of operators (2).
+> - $n$ is the number of terms (11). In my input, the longest operands sequence is 12, which means the longest combination of operators is 11.
+>
+> In other words, the minimum capacity is (the number of permutations of $r$ operators for 1 operand) + (the number of permutations of $r$ operators for 2 operands) + ... + (the number of permutations of $r$ operators for `operand_capacity - 1` operands).
 
-Part two introduced **cat `||`**, a new operator that concatenates two numbers together, e.g. `12 || 2 = 122`. Because we structured the code for part one to work for both parts (through some refactoring before writing this), we only have to add the new operator and it's `apply` method to the `Operator` enum:
+## Part Two
+
+For part two we still have to find the total calibration result, but now we have a new operator, the **concatenation operator** `||`. This operator concatenates its operands together, e.g. `12 || 34 = 1234`.
+
+We structured our part one code in a way that we can reuse almost all of it for part two. All we need to do is to add the new operator to the `Operator` type and implement its behaviour in `apply`:
 
 ```zig
 const Operator = enum {
@@ -200,30 +170,33 @@ const Operator = enum {
 };
 ```
 
-This is yet another math trick: $x \cdot 10^{\lfloor \log_{10}(y) \rfloor + 1} + y$, which can be translated into:
-
-```zig
-var result = x;
-var old_y = y;
-while (y > 0) : (y /= 10) {
-    result *= 10;
-}
-result += old_y;
-```
-
-Both has around the same performance, so I opted for the ~cooler~ shorter one. The code for part two itself is almost the same as part one, with the only difference being the addition of `.cat` in the `operators` array. Just like in the previous day, an optional optimization here is to check the equations in parallel.
+The part two code is almost identical to part one's:
 
 ```zig
 fn part2(self: Self) u64 {
+    const operators = [_]Operator{ .add, .mul, .cat };
+    const n = operators.len;
+    var permutations: [(std.math.pow(u64, n, operand_capacity) - 1) / (n - 1)]u64 = undefined;
+
     var result: u64 = 0;
-    for (self.results, 0..) |answer, i| {
-        const operators = [_]Operator{ .add, .mul, .cat };
-        if (is_valid_equation(answer, &self.operands[i], &operators)) {
-            result += answer;
+    for (self.test_values, self.operands, self.lengths) |test_value, operands, len| {
+        if (is_valid_equation(&permutations, test_value, operands[0..len], &operators)) {
+            result += test_value;
         }
     }
     return result;
 }
 ```
 
-## Benchmarks
+> [!TIP]
+> You can concatenate two numbers $x$ and $y$ by shifting $x$ by the number of digits in y, then adding $y$. You can get the number of digits of a base 10 number $y$ by getting its $log_{10}(y) + 1$.
+>
+> $$cat(x,y) = x \cdot 10^{\lfloor \log_{10}(y) \rfloor + 1} + y$$
+
+## Benchmark
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |

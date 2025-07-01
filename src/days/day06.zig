@@ -34,7 +34,6 @@ fn Day06(comptime length: usize) type {
         }
 
         fn part1(self: Self) u64 {
-            // std.debug.print("sest: {}\n", .{@sizeOf(Tile)});
             var result: u64 = 0;
             // Copy by value because we still need the original map for part two.
             var simulation = self;
@@ -59,7 +58,6 @@ fn Day06(comptime length: usize) type {
         }
 
         fn part2(self: *Self) u64 {
-            std.debug.print("{b:0>8}\n", .{@as(u8, @bitCast(Tile.init(.exit).visit(.up)))});
             var result: u64 = 0;
 
             self.position += self.direction.vector();
