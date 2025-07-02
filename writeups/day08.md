@@ -2,11 +2,11 @@
 
 [Full solution](../src/days/day08.zig).
 
-## Part one
+## Puzzle Input
 
-We're given another 2D grid puzzle. This time it's a map of a city with antennas:
+Today's input is a map of a city with **antennas**:
 
-```
+```plaintext
 ............
 ........0...
 .....0......
@@ -21,21 +21,15 @@ We're given another 2D grid puzzle. This time it's a map of a city with antennas
 ............
 ```
 
-Antennas are any alphanumeric character in the map. In part one, for each antenna we have to calculate it's **antinode**. The wording in the puzzle page is confusing, but the point (😉) is that the antinode of antenna $A$ against antenna $B$ is the [reflection ](https://en.wikipedia.org/wiki/Point_reflection)of $A$ accross $B$: $Antinode(A) = 2B - A$, where $A$ and $B$ are position vectors. Here's an example plotted in a cartesian plane:
-
-![Antinode example visualization](./images/day08-1.png)
-
-Antinodes only happen to antennas of the same type (represented by the same character in the map). Antinodes can also overlap with other antennas. For part one, we have to find all the unique points where an antinode can be. To do this, we'll iterate over pairs of antennas, find both antinodes and insert them into a set of points. Since sets can only contain unique items, the number of items in the set is the number of unique antinode locations in the map.
-
-First, we'll parse the input:
+Today is a bit unique for a 2D grid puzzle as we don't have to parse the map. We just have to store the locations of the antennas. We'll parse the input into a mapping of antenna character to a list of its positions in the map:
 
 ```zig
 fn Day08(length: usize) type {
     return struct {
+        const Self = @This();
+
         antennas: std.AutoHashMap(u8, std.ArrayList([2]u8)) = undefined,
         allocator: std.mem.Allocator,
-
-        const Self = @This();
 
         fn init(input: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
@@ -60,9 +54,13 @@ fn Day08(length: usize) type {
 }
 ```
 
-We parsed the antennas into a mapping of antenna characters to their locations in the map. We are dynamically allocating memory here, but the benchmark results of the code is already fast enough (even faster than days six and seven that doesn't allocate at all), so I kept the code as is.
+This is also the first day we're using dynamic allocation. Trying to force a solution without it results in complex and unreadable code. We're only allocating during parsing, so it doesn't impact the performance of the rest of the parts much.
 
-Next, we define a `antinode_of` function to calculate the antinode of two points:
+## Part One
+
+We have to count how many distinct positions in the map contains an **antinode**. The antinode of antenna $a$ against antenna $b$ is the [reflection of $a$ across $b$](https://en.wikipedia.org/wiki/Point_reflection). Antennas $a$ and $b$ must be of the same type. Antinodes can also overlap (reside in the same position) with other antennas.
+
+We'll first create a function to get the antinode of two antennas using the formula $antinode(a,b) = 2b - a$. If the resulting antinode is out of bounds, we'll return `null`.
 
 ```zig
 fn antinode_of(a: [2]u8, b: [2]u8) ?[2]u8 {
@@ -73,64 +71,55 @@ fn antinode_of(a: [2]u8, b: [2]u8) ?[2]u8 {
 }
 ```
 
-Since antinodes can be out of bounds, we'll use an optional return type and return `null` if it is out of bounds. This will simplify the solution logic later so that we can do:
-
-```zig
-if (antinode_of(a, b)) |antinode| {
-    // Do something with valid antinode.
-}
-```
-
-Instead of:
-
-```zig
-var antinode = antinode_of(a, b);
-if (antinode[0] >= 0 and antinode[1] >= 0 and antinode[0] < length and antinode[1] < length) {
-    // Do something with valid antinode.
-}
-```
-
-And here's the solution for part one:
+To find all antinodes for a specific antenna type, we'll try every combination of two antennas, calculate their antinode positions, and insert the results into a set. We'll do this for every antenna type in the map. The total number of entries in the set is our answer. Here's the code:
 
 ```zig
 fn part1(self: Self) !u64 {
     var antinodes = std.AutoHashMap([2]u8, void).init(self.allocator);
     defer antinodes.deinit();
 
-    var iterator = self.antennas.iterator();
+    var iterator = self.antennas.valueIterator();
     while (iterator.next()) |entry| {
-        const antennas = entry.value_ptr.*.items;
+        const antennas = entry.*.items;
         for (antennas[0..(antennas.len - 1)], 0..) |antenna_a, i| {
             for (antennas[(i + 1)..antennas.len]) |antenna_b| {
                 if (antinode_of(antenna_a, antenna_b)) |antinode| {
                     try antinodes.put(antinode, {});
                 }
+
                 if (antinode_of(antenna_b, antenna_a)) |antinode| {
                     try antinodes.put(antinode, {});
                 }
             }
         }
     }
+
     return antinodes.count();
 }
 ```
 
-Zig doesn't have a set type built-in, but we can use `std.AutoHashMap(T, void)` as a set. In fact this is how sets are implemented in some languages, e.g. Python.
+> [!NOTE]
+> We have to call `antinode_of` twice for each pair of antennas. The first is to get the antinode of $a$ against $b$, and the second is to get the antinode of $b$ against $a$.
 
-## Part two
+> [!TIP]
+> In Zig we usually use a hash map with a `void` value type as a set since there's no built-in, "general-purpose set type" in the standard library, e.g. `std.AutoHashMap(u8, void)`.
+>
+> Yeah there's `BufSet`, which uses `std.StringHashMap(void)` under the hood, but this only works for string keys. There's also the `BitSet` types, but these only support integer keys.
 
-Part two comes with a more confusing description. This time, for each pair of antennas, we have to keep finding the antinodes recursively until we reach the end of the map. E.g., after finding $Antinode(A, B)$, we have to find $Antinode(B, Antinode(A, B))$, and so on until the antinode is out of bounds. We also have to include the antennas themselves into the final antinode count, because the also count as antinodes.
+## Part Two
 
-We can reuse most of the code from part one and just change the part where we find the antinodes to find all antinodes until we reach out of bounds:
+Part two introduced **resonant harmonics**. Now, for each pair of antennas, we have to keep finding antinodes recursively until we've gone out of bounds. E.g, after finding $antinode(a,b)$, we have to find $antinode(b,antinode(a,b))$, then $antinode(antinode(a,b),antinode(b, antinode(a,b)))$, and so on.
+
+This isn't too big of a twist for part two, we can reuse most of our part one code. Now, we'll keep finding antinodes until `antinode_of` returns `null`, which means we've gone out of bounds. Here's the code:
 
 ```zig
 fn part2(self: Self) !u64 {
     var antinodes = std.AutoHashMap([2]u8, void).init(self.allocator);
     defer antinodes.deinit();
 
-    var iterator = self.antennas.iterator();
+    var iterator = self.antennas.valueIterator();
     while (iterator.next()) |entry| {
-        const antennas = entry.value_ptr.*.items;
+        const antennas = entry.*.items;
         for (antennas[0..(antennas.len - 1)], 0..) |antenna_a, i| {
             try antinodes.put(antenna_a, {});
 
@@ -144,6 +133,7 @@ fn part2(self: Self) !u64 {
                     current_a = current_b;
                     current_b = antinode;
                 }
+
                 current_a = antenna_b;
                 current_b = antenna_a;
                 while (antinode_of(current_a, current_b)) |antinode| {
@@ -154,8 +144,15 @@ fn part2(self: Self) !u64 {
             }
         }
     }
+
     return antinodes.count();
 }
 ```
 
-## Benchmarks
+## Benchmark
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |

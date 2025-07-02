@@ -2,10 +2,10 @@ const std = @import("std");
 
 fn Day08(length: usize) type {
     return struct {
+        const Self = @This();
+
         antennas: std.AutoHashMap(u8, std.ArrayList([2]u8)) = undefined,
         allocator: std.mem.Allocator,
-
-        const Self = @This();
 
         fn init(input: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
@@ -37,20 +37,22 @@ fn Day08(length: usize) type {
             var antinodes = std.AutoHashMap([2]u8, void).init(self.allocator);
             defer antinodes.deinit();
 
-            var iterator = self.antennas.iterator();
+            var iterator = self.antennas.valueIterator();
             while (iterator.next()) |entry| {
-                const antennas = entry.value_ptr.*.items;
+                const antennas = entry.*.items;
                 for (antennas[0..(antennas.len - 1)], 0..) |antenna_a, i| {
                     for (antennas[(i + 1)..antennas.len]) |antenna_b| {
                         if (antinode_of(antenna_a, antenna_b)) |antinode| {
                             try antinodes.put(antinode, {});
                         }
+
                         if (antinode_of(antenna_b, antenna_a)) |antinode| {
                             try antinodes.put(antinode, {});
                         }
                     }
                 }
             }
+
             return antinodes.count();
         }
 
@@ -58,9 +60,9 @@ fn Day08(length: usize) type {
             var antinodes = std.AutoHashMap([2]u8, void).init(self.allocator);
             defer antinodes.deinit();
 
-            var iterator = self.antennas.iterator();
+            var iterator = self.antennas.valueIterator();
             while (iterator.next()) |entry| {
-                const antennas = entry.value_ptr.*.items;
+                const antennas = entry.*.items;
                 for (antennas[0..(antennas.len - 1)], 0..) |antenna_a, i| {
                     try antinodes.put(antenna_a, {});
 
