@@ -76,6 +76,7 @@ fn Day08(length: usize) type {
                             current_a = current_b;
                             current_b = antinode;
                         }
+
                         current_a = antenna_b;
                         current_b = antenna_a;
                         while (antinode_of(current_a, current_b)) |antinode| {
@@ -86,6 +87,7 @@ fn Day08(length: usize) type {
                     }
                 }
             }
+
             return antinodes.count();
         }
 

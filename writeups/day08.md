@@ -58,7 +58,7 @@ This is also the first day we're using dynamic allocation. Trying to force a sol
 
 ## Part One
 
-We have to count how many distinct positions in the map contains an **antinode**. The antinode of antenna $a$ against antenna $b$ is the [reflection of $a$ across $b$](https://en.wikipedia.org/wiki/Point_reflection). Antennas $a$ and $b$ must be of the same type. Antinodes can also overlap (reside in the same position) with other antennas.
+We have to count how many distinct positions in the map contains an **antinode**. The antinode of antenna $a$ against antenna $b$ is the [reflection](https://en.wikipedia.org/wiki/Point_reflection) of $a$ across $b$. Antennas $a$ and $b$ must be of the same type. Antinodes can also overlap (reside in the same position) with other antennas.
 
 We'll first create a function to get the antinode of two antennas using the formula $antinode(a,b) = 2b - a$. If the resulting antinode is out of bounds, we'll return `null`.
 
