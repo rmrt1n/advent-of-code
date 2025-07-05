@@ -48,7 +48,7 @@ fn Day09(length: usize) type {
         }
 
         fn part2(self: Self) !u64 {
-            // This is a 100x time speedup than using a regular ArrayList.
+            // This is much faster than using a regular ArrayList.
             const free_heap_capacity = 10;
             var free_heaps: [10]std.PriorityQueue(usize, void, compare) = undefined;
             for (1..free_heap_capacity) |i| {

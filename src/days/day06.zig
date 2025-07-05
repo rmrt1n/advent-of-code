@@ -153,19 +153,19 @@ const Tile = packed struct(u8) {
         return Tile{ .type = tile_type };
     }
 
-    fn visit(self: Tile, direction: Direction) Tile {
+    fn visit(tile: Tile, direction: Direction) Tile {
         const mask: u8 = if (endian == .big) direction.mask() << 4 else direction.mask();
-        const int_self = &@as(u8, @bitCast(self));
+        const int_tile = &@as(u8, @bitCast(tile));
 
-        var result = @as(Tile, @bitCast(int_self.* | mask));
+        var result = @as(Tile, @bitCast(int_tile.* | mask));
         result.type = .visited;
         return result;
     }
 
-    fn has_visited(self: Tile, direction: Direction) bool {
+    fn has_visited(tile: Tile, direction: Direction) bool {
         const mask = direction.mask();
-        const int_self = @as(u8, @bitCast(self));
-        const bits = if (endian == .big) int_self >> 4 else int_self & 0xff;
+        const int_tile = @as(u8, @bitCast(tile));
+        const bits = if (endian == .big) int_tile >> 4 else int_tile & 0xff;
         return bits & mask == mask;
     }
 };

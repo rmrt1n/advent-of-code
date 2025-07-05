@@ -237,19 +237,19 @@ const Tile = packed struct(u8) {
     // ...
     const endian = builtin.target.cpu.arch.endian();
     
-    fn visit(self: Tile, direction: Direction) Tile {
+    fn visit(tile: Tile, direction: Direction) Tile {
         const mask: u8 = if (endian == .big) direction.mask() << 4 else direction.mask();
-        const int_self = &@as(u8, @bitCast(self));
+        const int_tile = &@as(u8, @bitCast(tile));
 
-        var result = @as(Tile, @bitCast(int_self.* | mask));
+        var result = @as(Tile, @bitCast(int_tile.* | mask));
         result.type = .visited;
         return result;
     }
 
-    fn has_visited(self: Tile, direction: Direction) bool {
+    fn has_visited(tile: Tile, direction: Direction) bool {
         const mask = direction.mask();
-        const int_self = @as(u8, @bitCast(self));
-        const bits = if (endian == .big) int_self >> 4 else int_self & 0xff;
+        const int_tile = @as(u8, @bitCast(tile));
+        const bits = if (endian == .big) int_tile >> 4 else int_tile & 0xff;
         return bits & mask == mask;
     }
 };
@@ -260,12 +260,12 @@ const Tile = packed struct(u8) {
 We used [bit-masking](https://en.wikipedia.org/wiki/Mask_(computing)) here to get/set the bits instead of `switch` because it's [branchless](https://en.algorithmica.org/hpc/pipelining/branching/). This results in faster code but is a bit less readable than:
 
 ```zig
-fn has_visited(self: Tile, direction: Direction) bool {
+fn has_visited(tile: Tile, direction: Direction) bool {
     switch (direction) {
-        .up => return self.up == 1,
-        .right => return self.right == 1,
-        .down => return self.down == 1,
-        .left => return self.left == 1,
+        .up => return tile.up == 1,
+        .right => return tile.right == 1,
+        .down => return tile.down == 1,
+        .left => return tile.left == 1,
     }
 }
 ```

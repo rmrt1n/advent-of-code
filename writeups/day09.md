@@ -95,7 +95,7 @@ fn file_checksum(id: usize, size: usize, start: usize) u64 {
 This function calculates a file segment's checksum given its file ID, the segment size, and the position (the index) of the first block in the segment. The checksum is the file ID multiplied by the sum of its block's indexes.
 
 > [!TIP]
-> The block's indexes is the arithmetic series $a + ar + ar^2 + ... + ar^n$. We can get its sum by using this formula:
+> The block's indexes is the arithmetic series $a + (a + 1) + (a + 2) + ... + (a + n)$. We can get its sum by using this formula:
 >
 > $$S_n = n \frac{a_1 + a_n}{2}$$
 > 

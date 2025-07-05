@@ -50,6 +50,12 @@ fn Day08(length: usize) type {
 
             return result;
         }
+
+        fn deinit(self: *Self) void {
+            var iterator = self.antennas.valueIterator();
+            while (iterator.next()) |value| value.deinit();
+            self.antennas.deinit();
+        }
     };
 }
 ```
