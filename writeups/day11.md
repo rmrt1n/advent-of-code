@@ -2,25 +2,23 @@
 
 [Full solution](../src/days/day11.zig).
 
-## Part one
+## Puzzle Input
 
-Day eleven was my first introduction to the [lanternfish](https://www.reddit.com/r/adventofcode/comments/1hn2osp/note_to_self_always_ask_is_this_lanternfish/). This was the first day that stumped me so hard I had to look at other people's solutions to understand how to solve it. Thanks to this thoough I know how to solve the later challenges that were also lanternfishes.
+Today's input is a list of **stones** with numbers on them, arranged in a single line:
 
-The puzzle input is very short, e.g. `125 17`. Each number here is engraved on a stone. Every time we **blink**, the stones will evolve following these rules:
+```plaintext
+125 7
+```
 
-1. If the stone is a 0, it becomes a 1.
-2. If the stone is has an even number of digits, it will be split from the middle into two stones. E.g., 2024 will be split into the stones 20 and 24. Leading zeros are ignored.
-3. If rules 1 and 2 didn't apply, the stone's number is multiplied by 2024.
-
-There's not a lot to do to parse the input:
+We'll parse the input into an array:
 
 ```zig
 fn Day11(length: usize) type {
     return struct {
+        const Self = @This();
+
         stones: [length]u32 = undefined,
         allocator: std.mem.Allocator,
-
-        const Self = @This();
 
         fn init(input: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
@@ -37,54 +35,90 @@ fn Day11(length: usize) type {
 }
 ```
 
-For part one we have to count the number of stones after 25 blinks. We can solve this very naively by simulating the blinks in a list, i.e. updating the list after each iteration. This may work for part one, but it will not work for part two, or at least it will take an extrememly long time for the code to finish.
+## Part One
 
-Instead, we have to keep track of the counts of each stone each iteration, and add the previous counts in the current iteration, i.e. memoization. We'll use a hashmap to store the stone counts, as the numbers are really big and we would be wasting more space if we use a regular array as a map like in previous days.
+We need to count the number of stones after **25 blinks**. Every time we blink, the stones change following these rules:
 
-We'll define a `count_stones` function that will return the number of stones after a certain number of blinks, passed as an argument to the function:
+1. If the stone is a `0`, it becomes a `1`.
+2. If the stone has an even number of digits, it will be split into two stones. E.g., `1234` will be split into `12` and `34`. Leading zeros are ignored.
+3. If rules 1 and 2 didn't apply, multiply the stone by `2024`.
+
+We could implement this naively by simulating the stones using a list, but this quickly becomes inefficient, especially when we get to higher blink counts. The puzzle description says that the order of the stones must be preserved, but it doesn't actually matter for counting stones.
+
+Instead of simulating the blinks (this grows exponentially), we keep track of their frequencies using a hash map `std.AutoHashMap`. Each blink, we use the values from the previous blink to compute the current one. 
+
+We'll define a `count_stones` function to count stones given the number of blinks. It's a bit long, so I'll break it down into several parts:
+
+Instead of creating a new map for every blink, we'll pre-allocate two maps and alternate between them each iteration. Doing this significantly reduces the number of allocations required:
 
 ```zig
 fn count_stones(self: Self, n_blinks: u8) !u64 {
-    var frequencies = std.AutoHashMap(u64, u64).init(self.allocator);
-    defer frequencies.deinit();
+    var frequencies: [2]std.AutoHashMap(u64, u64) = undefined;
+    for (0..2) |i| frequencies[i] = std.AutoHashMap(u64, u64).init(self.allocator);
+    defer for (0..2) |i| frequencies[i].deinit();
 
-    for (self.stones) |stone| try frequencies.put(stone, 1);
+    var id: usize = 0;
+    for (self.stones) |stone| try frequencies[id].put(stone, 1);
+    
+    // ...
+}
+```
+
+We also insert the initial stones from our input into the first map. I assumed the stones in the puzzle input are unique, so I initialised their frequencies to 1.
+
+Next, we'll run the simulation for the blink count:
+
+```zig
+fn count_stones(self: Self, n_blinks: u8) !u64 {
+    // ...
 
     for (0..n_blinks) |_| {
-        var new_frequencies = std.AutoHashMap(u64, u64).init(self.allocator);
-        var iterator = frequencies.iterator();
+        var old_frequencies = &frequencies[id % 2];
+        var new_frequencies = &frequencies[(id + 1) % 2];
+        id += 1;
+
+        defer old_frequencies.clearRetainingCapacity();
+
+        var iterator = old_frequencies.iterator();
         while (iterator.next()) |entry| {
             const stone = entry.key_ptr.*;
             const count = entry.value_ptr.*;
 
-            // If the stone is 0, it becomes a 1.
             if (stone == 0) {
                 const value = try new_frequencies.getOrPutValue(1, 0);
                 value.value_ptr.* += count;
                 continue;
             }
 
-            // If the stone has an odd number of digits, it is multiplied by 2024.
-            const n = std.math.log10(stone) + 1;
-            if (n % 2 == 1) {
+            const n_digits = std.math.log10(stone) + 1;
+            if (n_digits % 2 == 1) {
                 const value = try new_frequencies.getOrPutValue(stone * 2024, 0);
                 value.value_ptr.* += count;
                 continue;
             }
 
-            // If the stone has an even number of digits, it is split in two.
-            const ten_power_n = std.math.pow(u64, 10, n / 2);
+            const ten_power_n = std.math.pow(u64, 10, n_digits / 2);
             const left_value = try new_frequencies.getOrPutValue(stone / ten_power_n, 0);
             left_value.value_ptr.* += count;
             const right_value = try new_frequencies.getOrPutValue(stone % ten_power_n, 0);
             right_value.value_ptr.* += count;
         }
-        frequencies.deinit();
-        frequencies = new_frequencies;
     }
+    
+    // ...
+}
+```
+
+We swap maps by using a rolling index. For each stone we insert into the new map, we'll add their previous frequency from the old map.
+
+Finally, all we have to do is get the sum of the frequencies:
+
+```zig
+fn count_stones(self: Self, n_blinks: u8) !u64 {
+    // ...
 
     var result: u64 = 0;
-    var iterator = frequencies.valueIterator();
+    var iterator = frequencies[id % 2].valueIterator();
     while (iterator.next()) |value| {
         result += value.*;
     }
@@ -92,9 +126,7 @@ fn count_stones(self: Self, n_blinks: u8) !u64 {
 }
 ```
 
-This is how lanternfish algorithms usually look like. For every evolved stone, we add the count of the previous stone to it. We keep doing this until the number of blinks is reached. Like in day seven, we can get number of digits of a stone by getting its log10 added by one. To get the left side of the stone, we divide it with $10^{n / 2}$ and to get the right side we get the remainder of the division.
-
-And that's day 11 solved. The part one code is just a thin wrapper over this function:
+The part one code is just a simple wrapper that calls this function with 25 blinks:
 
 ```zig
 fn part1(self: Self) !u64 {
@@ -102,9 +134,64 @@ fn part1(self: Self) !u64 {
 }
 ```
 
-## Part two
+And here's the full code of `count_stones` for your reference:
 
-Part two is also a thin wrapper over `count_stones`. This time, instead of 25 blinks, we have to blink 75 times:
+```zig
+fn count_stones(self: Self, n_blinks: u8) !u64 {
+    var frequencies: [2]std.AutoHashMap(u64, u64) = undefined;
+    for (0..2) |i| frequencies[i] = std.AutoHashMap(u64, u64).init(self.allocator);
+    defer for (0..2) |i| frequencies[i].deinit();
+
+    var id: usize = 0;
+    for (self.stones) |stone| try frequencies[id].put(stone, 1);
+
+    for (0..n_blinks) |_| {
+        var old_frequencies = &frequencies[id % 2];
+        var new_frequencies = &frequencies[(id + 1) % 2];
+        id += 1;
+
+        defer old_frequencies.clearRetainingCapacity();
+
+        var iterator = old_frequencies.iterator();
+        while (iterator.next()) |entry| {
+            const stone = entry.key_ptr.*;
+            const count = entry.value_ptr.*;
+
+            if (stone == 0) {
+                const value = try new_frequencies.getOrPutValue(1, 0);
+                value.value_ptr.* += count;
+                continue;
+            }
+
+            const n_digits = std.math.log10(stone) + 1;
+            if (n_digits % 2 == 1) {
+                const value = try new_frequencies.getOrPutValue(stone * 2024, 0);
+                value.value_ptr.* += count;
+                continue;
+            }
+
+            const ten_power_n = std.math.pow(u64, 10, n_digits / 2);
+            const left_value = try new_frequencies.getOrPutValue(stone / ten_power_n, 0);
+            left_value.value_ptr.* += count;
+            const right_value = try new_frequencies.getOrPutValue(stone % ten_power_n, 0);
+            right_value.value_ptr.* += count;
+        }
+    }
+
+    var result: u64 = 0;
+    var iterator = frequencies[id % 2].valueIterator();
+    while (iterator.next()) |value| {
+        result += value.*;
+    }
+    return result;
+}
+```
+
+## Part Two
+
+Instead of 25 blinks, we have to count the number of stones after **75 blinks**.
+
+We don't have any new code for part two. Just update the blink count from 25 with 75 and we're done:
 
 ```zig
 fn part2(self: Self) !u64 {
@@ -112,4 +199,13 @@ fn part2(self: Self) !u64 {
 }
 ```
 
-## Benchmarks
+> [!TIP]
+> This was my first introduction to the [lanternfish](https://www.reddit.com/r/adventofcode/comments/1hn2osp/note_to_self_always_ask_is_this_lanternfish/). It's a typical Advent of Code puzzle pattern where naive, brute force solutions don't work due to exponential growth. The solutions usually require some form of [memoization](https://en.wikipedia.org/wiki/Memoization).
+
+## Benchmark
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |

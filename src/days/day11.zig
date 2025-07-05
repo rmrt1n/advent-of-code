@@ -2,10 +2,10 @@ const std = @import("std");
 
 fn Day11(length: usize) type {
     return struct {
+        const Self = @This();
+
         stones: [length]u32 = undefined,
         allocator: std.mem.Allocator,
-
-        const Self = @This();
 
         fn init(input: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
@@ -28,14 +28,21 @@ fn Day11(length: usize) type {
         }
 
         fn count_stones(self: Self, n_blinks: u8) !u64 {
-            var frequencies = std.AutoHashMap(u64, u64).init(self.allocator);
-            defer frequencies.deinit();
+            var frequencies: [2]std.AutoHashMap(u64, u64) = undefined;
+            for (0..2) |i| frequencies[i] = std.AutoHashMap(u64, u64).init(self.allocator);
+            defer for (0..2) |i| frequencies[i].deinit();
 
-            for (self.stones) |stone| try frequencies.put(stone, 1);
+            var id: usize = 0;
+            for (self.stones) |stone| try frequencies[id].put(stone, 1);
 
             for (0..n_blinks) |_| {
-                var new_frequencies = std.AutoHashMap(u64, u64).init(self.allocator);
-                var iterator = frequencies.iterator();
+                var old_frequencies = &frequencies[id % 2];
+                var new_frequencies = &frequencies[(id + 1) % 2];
+                id += 1;
+
+                defer old_frequencies.clearRetainingCapacity();
+
+                var iterator = old_frequencies.iterator();
                 while (iterator.next()) |entry| {
                     const stone = entry.key_ptr.*;
                     const count = entry.value_ptr.*;
@@ -46,25 +53,23 @@ fn Day11(length: usize) type {
                         continue;
                     }
 
-                    const n = std.math.log10(stone) + 1;
-                    if (n % 2 == 1) {
+                    const n_digits = std.math.log10(stone) + 1;
+                    if (n_digits % 2 == 1) {
                         const value = try new_frequencies.getOrPutValue(stone * 2024, 0);
                         value.value_ptr.* += count;
                         continue;
                     }
 
-                    const ten_power_n = std.math.pow(u64, 10, n / 2);
+                    const ten_power_n = std.math.pow(u64, 10, n_digits / 2);
                     const left_value = try new_frequencies.getOrPutValue(stone / ten_power_n, 0);
                     left_value.value_ptr.* += count;
                     const right_value = try new_frequencies.getOrPutValue(stone % ten_power_n, 0);
                     right_value.value_ptr.* += count;
                 }
-                frequencies.deinit();
-                frequencies = new_frequencies;
             }
 
             var result: u64 = 0;
-            var iterator = frequencies.valueIterator();
+            var iterator = frequencies[id % 2].valueIterator();
             while (iterator.next()) |value| {
                 result += value.*;
             }
