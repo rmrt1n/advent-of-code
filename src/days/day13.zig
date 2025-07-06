@@ -2,11 +2,11 @@ const std = @import("std");
 
 fn Day13(length: usize) type {
     return struct {
+        const Self = @This();
+
         buttons_a: [length][2]u8 = undefined,
         buttons_b: [length][2]u8 = undefined,
         prizes: [length][2]i64 = undefined,
-
-        const Self = @This();
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -23,7 +23,7 @@ fn Day13(length: usize) type {
 
                 new_line = lexer.next().?;
                 var inner_lexer = std.mem.tokenizeScalar(u8, new_line, ' ');
-                _ = inner_lexer.next().?; // Skip 'Prize: X:'
+                _ = inner_lexer.next().?; // Skip 'Prize: '
 
                 new_line = inner_lexer.next().?;
                 result.prizes[i][0] = try std.fmt.parseInt(i64, new_line[2 .. new_line.len - 1], 10);
@@ -37,10 +37,9 @@ fn Day13(length: usize) type {
 
         fn part1(self: Self) u64 {
             var result: usize = 0;
-            for (0..self.prizes.len) |i| {
-                const prize = .{ self.prizes[i][0], self.prizes[i][1] };
-                const tokens_a = count_tokens(self.buttons_a[i], self.buttons_b[i], prize);
-                const tokens_b = count_tokens(self.buttons_b[i], self.buttons_a[i], prize);
+            for (self.buttons_a, self.buttons_b, self.prizes) |button_a, button_b, prize| {
+                const tokens_a = count_tokens(button_a, button_b, prize);
+                const tokens_b = count_tokens(button_b, button_a, prize);
                 if (tokens_a == null or tokens_b == null) continue;
                 result += tokens_a.? * 3 + tokens_b.?;
             }
@@ -49,13 +48,10 @@ fn Day13(length: usize) type {
 
         fn part2(self: Self) u64 {
             var result: u64 = 0;
-            for (0..self.prizes.len) |i| {
-                const prize = .{
-                    self.prizes[i][0] + 10_000_000_000_000,
-                    self.prizes[i][1] + 10_000_000_000_000,
-                };
-                const tokens_a = count_tokens(self.buttons_a[i], self.buttons_b[i], prize);
-                const tokens_b = count_tokens(self.buttons_b[i], self.buttons_a[i], prize);
+            for (self.buttons_a, self.buttons_b, self.prizes) |button_a, button_b, old_prize| {
+                const prize = .{ old_prize[0] + 10_000_000_000_000, old_prize[1] + 10_000_000_000_000 };
+                const tokens_a = count_tokens(button_a, button_b, prize);
+                const tokens_b = count_tokens(button_b, button_a, prize);
                 if (tokens_a == null or tokens_b == null) continue;
                 result += tokens_a.? * 3 + tokens_b.?;
             }

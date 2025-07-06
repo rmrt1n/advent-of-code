@@ -2,11 +2,11 @@
 
 [Full solution](../src/days/day13.zig).
 
-## Part one
+## Puzzle Input
 
-Day 13 looks like a lanternfish puzzle but it is actually math problem in disguise. We're given a list of claw machine configuration as our puzzle input:
+Today's input is a list of **claw machines**:
 
-```
+```plaintext
 Button A: X+94, Y+34
 Button B: X+22, Y+67
 Prize: X=8400, Y=5400
@@ -24,18 +24,18 @@ Button B: X+27, Y+71
 Prize: X=18641, Y=10279
 ```
 
-There are two buttons, A and B. Each button requires **tokens** to push, with A requiring three tokens and B one token. Each section of the input describes the machine configuration. For example, the first machine's button A moves 94 units in the X axis and 34 unit in the Y axis when pushed. The prize is located at the coordinates (8400, 5400).
+Each claw machine has two buttons, **A** and **B**, which move the claw in the directions specified, and a prize with its location given.
 
-For part one, we have to find the cheapest way to get the prize (using the fewest number of tokens). There are also machines where it's not possible to get the prize, which we'll just ignore. First we'll parse the input. Arguably, this is the hardest part of the puzzle:
+We'll parse the input into three arrays, two for each button and one for the prizes:
 
 ```zig
 fn Day13(length: usize) type {
     return struct {
+        const Self = @This();
+
         buttons_a: [length][2]u8 = undefined,
         buttons_b: [length][2]u8 = undefined,
         prizes: [length][2]i64 = undefined,
-
-        const Self = @This();
 
         fn init(input: []const u8) !Self {
             var result = Self{};
@@ -52,7 +52,7 @@ fn Day13(length: usize) type {
 
                 new_line = lexer.next().?;
                 var inner_lexer = std.mem.tokenizeScalar(u8, new_line, ' ');
-                _ = inner_lexer.next().?; // Skip 'Prize: X:'
+                _ = inner_lexer.next().?; // Skip 'Prize: '
 
                 new_line = inner_lexer.next().?;
                 result.prizes[i][0] = try std.fmt.parseInt(i64, new_line[2 .. new_line.len - 1], 10);
@@ -67,50 +67,41 @@ fn Day13(length: usize) type {
 }
 ```
 
-To solve today's puzzle, we can do a bit of maths. For each claw machine, we can write these equations:
+## Part One
 
-1. $nX_a + mX_b = X_p$
-2. $nY_a + mY_b = Y_p$
+We need to count the **fewest tokens** needed to win all possible prizes. Button A requires 3 tokens to press while button B requires only 1.
 
-Where $n$ is the number of button A presses and $m$ is the number of button B presses. $X_p$ and $Y_p$ are the coordinates of the prize. With these, we have to find the equations for $n$ and $m$, since if we know the number of presses needed for each button we'll also know how many tokens is needed. We can get $n$ by:
+We can use basic algebra to solve today's problem. First, we'll define some variables. Let:
 
-1. Start with the equations for $m$:
+- $(X_A, Y_A)$ be the vector for button A.
+- $(X_B, Y_B)$ be the vector for button B.
+- $(X_P, Y_P)$ be the coordinate of the prize.
+- $n$ be the number of times button A is pressed.
+- $m$ be the number of times button B is pressed.
 
-$$
-m = \frac{X_p - nX_a}{X_b} = \frac{Y_p - nY_a}{Y_b}
-$$
+Each claw machine can be described by these two equations:
 
-2. Simplify into:
+1. $nX_A + mX_B = X_P$
+2. $nY_A + mY_B = Y_P$
 
-$$
-X_pY_b - nX_aY_b = Y_pX_b - nY_aX_b
-$$
+Then, we'll find the equations for $n$ and $m$. We'll do $n$ first as an example:
 
-3. Which can be rewritten as:
+1. We'll start with the equations for $m$:
+    $$m = \frac{X_P - nX_A}{X_B} = \frac{Y_P - nY_A}{Y_B}$$
+2. Cross-multiply to eliminate the denominators:
+    $$X_PY_P - nX_AY_B = Y_PX_B - nY_AX_B$$
+3. This can be rearranged into:
+    $$nY_aX_b - nX_aY_b = Y_pX_b - X_pY_b$$
+4. Factor out $n$:
+    $$n \cdot (Y_AX_B - X_AY_B) = Y_PX_B - X_PY_B$$
+5. Solve for $n$:
+    $$n = \frac{Y_PX_B - X_PY_B}{Y_AX_B - X_AY_B}$$
 
-$$
-nY_aX_b - nX_aY_b = Y_pX_b - X_pY_b
-$$
+You can derive the equation for $m$ in the same way. You should end up with:
 
-4. Simplify into:
+$$m = \frac{Y_PX_A - X_PY_A}{X_AY_B - Y_AX_B}$$
 
-$$
-n \cdot (Y_aX_b - X_aY_b) = Y_pX_b - X_pY_b
-$$
-
-5. And finally we get:
-
-$$
-n = \frac{Y_pX_b - X_pY_b}{Y_aX_b - X_aY_b}
-$$
-
-We can do the same with $m$ to get:
-
-$$
-m = \frac{Y_pX_a - X_pY_a}{X_aY_b - Y_aX_b}
-$$
-
-We can implement this as a `count_tokens` function that will return either $n$ or $m$. We don't have to implement two different functions here because if you swap A coordinates in the equation for $n$ with B's coordinates, you'll get the equation for $m$. There are also cases where it is not possible to get the prize. We can detect this by checking if $n$ or $m$ is an integer.
+We'll implement this into a function that computes the minimum presses needed to reach a prize. Since the formulas for $n$ and $m$ are symmetrical, we don't need separate functions—we can simply swap the button order passed to the function:
 
 ```zig
 fn count_tokens(a: [2]u8, b: [2]u8, p: [2]i64) ?u64 {
@@ -120,15 +111,16 @@ fn count_tokens(a: [2]u8, b: [2]u8, p: [2]i64) ?u64 {
 }
 ```
 
-Here, we'll return `null` if the result isn't an integer by checking the remainder of the division. To solve part one, we just have to apply this function to every machine in the puzzle input and count the number of tokens:
+There are cases where it's not possible to reach a prize. In such cases, we'll return a `null`.
+
+Now for the solution. We'll iterate over all of the claw machines, calculate the minimum presses for each button, and convert these into tokens (button A costs 3 tokens). We'll add this to the total to get the answer:
 
 ```zig
 fn part1(self: Self) u64 {
     var result: usize = 0;
-    for (0..self.prizes.len) |i| {
-        const prize = .{ self.prizes[i][0], self.prizes[i][1] };
-        const tokens_a = count_tokens(self.buttons_a[i], self.buttons_b[i], prize);
-        const tokens_b = count_tokens(self.buttons_b[i], self.buttons_a[i], prize);
+    for (self.buttons_a, self.buttons_b, self.prizes) |button_a, button_b, prize| {
+        const tokens_a = count_tokens(button_a, button_b, prize);
+        const tokens_b = count_tokens(button_b, button_a, prize);
         if (tokens_a == null or tokens_b == null) continue;
         result += tokens_a.? * 3 + tokens_b.?;
     }
@@ -136,22 +128,19 @@ fn part1(self: Self) u64 {
 }
 ```
 
-We swap the `a` and `b` arguments to `count_tokens` to get both $n$ (`tokens_a`) and $m$ (`tokens_b`). If any of those are `null`, it means that the prize is not winnable. Then we have to multiply `tokens_a` by three because pushing button A requires three tokens.
+## Part Two
 
-## Part two
+We still need to count the minimum tokens, but this time the prize locations are shifted by **10,000,000,000,000** along both axes.
 
-There isn't big twist for part two. Now, the position of the prizes is actually higher by 10,000,000,000,000. We can reuse almost all of our part one code. The one change we'll need is to increment the prize coordinates by 10,000,000,000,000 in each iteration. Since we used `u64` in the `count_tokens` function, we don't have to refactor it to avoid integer overflows:
+Our part one logic still works for part two. We only have to adjust the prize locations:
 
 ```zig
 fn part2(self: Self) u64 {
     var result: u64 = 0;
-    for (0..self.prizes.len) |i| {
-        const prize = .{
-            self.prizes[i][0] + 10_000_000_000_000,
-            self.prizes[i][1] + 10_000_000_000_000,
-        };
-        const tokens_a = count_tokens(self.buttons_a[i], self.buttons_b[i], prize);
-        const tokens_b = count_tokens(self.buttons_b[i], self.buttons_a[i], prize);
+    for (self.buttons_a, self.buttons_b, self.prizes) |button_a, button_b, old_prize| {
+        const prize = .{ old_prize[0] + 10_000_000_000_000, old_prize[1] + 10_000_000_000_000 };
+        const tokens_a = count_tokens(button_a, button_b, prize);
+        const tokens_b = count_tokens(button_b, button_a, prize);
         if (tokens_a == null or tokens_b == null) continue;
         result += tokens_a.? * 3 + tokens_b.?;
     }
@@ -159,4 +148,10 @@ fn part2(self: Self) u64 {
 }
 ```
 
-## Benchmarks
+## Benchmark
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |
