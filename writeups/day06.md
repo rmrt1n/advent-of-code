@@ -134,9 +134,9 @@ const Direction = enum {
 };
 
 fn part1(self: Self) u64 {
-    var result: u64 = 0;
     // Copy by value because we still need the original map for part two.
     var simulation = self;
+    var result: u64 = 0;
 
     while (true) {
         switch (simulation.get_tile().type) {

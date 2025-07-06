@@ -1,26 +1,14 @@
 const std = @import("std");
 
-const Direction = enum {
-    up,
-    right,
-    down,
-    left,
-
-    fn vector(direction: Direction) @Vector(2, i8) {
-        const directions = [_][2]i8{ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
-        return directions[@intFromEnum(direction)];
-    }
-
-    fn rotate(direction: Direction) Direction {
-        return @enumFromInt((@as(u8, @intFromEnum(direction)) + 1) % 4);
-    }
-};
-
 fn Day12(length: usize) type {
     return struct {
-        garden: [length + 2][length + 2]u8 = .{.{'#'} ** (length + 2)} ** (length + 2),
-
         const Self = @This();
+
+        const map_size = length + 2; // Add borders
+        const stack_capacity = 1024;
+
+        // Borders are 26 because the minimum is the next character after 'Z' - 'A' (25).
+        garden: [map_size][map_size]u8 = .{.{26} ** map_size} ** map_size,
 
         fn init(input: []const u8) Self {
             var result = Self{};
@@ -35,32 +23,34 @@ fn Day12(length: usize) type {
         }
 
         fn part1(self: Self) u64 {
-            var result: u64 = 0;
+            // Copy by value because we still need the original map for part two.
             var copy = self;
-            for (1..(length + 1)) |i| {
-                for (1..(length + 1)) |j| {
-                    const plant = copy.garden[i][j];
+            var result: u64 = 0;
+            var stack: [stack_capacity][2]i16 = undefined;
+
+            for (copy.garden[1..(map_size - 1)], 1..) |row, i| {
+                for (row[1..(map_size - 1)], 1..) |plant, j| {
                     if (plant < 'A') continue;
 
                     var area: u64 = 0;
                     var perimeter: u64 = 0;
 
-                    var stack: [580][2]i16 = undefined;
                     stack[0] = .{ @intCast(i), @intCast(j) };
 
                     var stack_length: usize = 1;
                     while (stack_length > 0) {
                         stack_length -= 1;
-                        const position = stack[stack_length];
 
+                        const position = stack[stack_length];
                         const tile = copy.get_tile_at(position);
+
                         if (tile == plant - 'A') continue;
                         if (tile != plant) {
                             perimeter += 1;
                             continue;
                         }
 
-                        copy.set_tile_at(position, tile - 'A');
+                        copy.set_tile_at(position, plant - 'A');
                         area += 1;
 
                         for ([_]Direction{ .up, .right, .down, .left }) |direction| {
@@ -68,40 +58,40 @@ fn Day12(length: usize) type {
                             stack_length += 1;
                         }
                     }
+
                     result += area * perimeter;
                 }
             }
+
             return result;
         }
 
-        const StackItem = struct { position: [2]i16, direction: Direction };
-
-        fn part2(self: Self) u64 {
+        fn part2(self: *Self) u64 {
             var result: u64 = 0;
-            var copy = self;
-            for (1..(length + 1)) |i| {
-                for (1..(length + 1)) |j| {
-                    const plant = copy.garden[i][j];
+            var stack: [stack_capacity]struct { position: [2]i16, direction: Direction } = undefined;
+
+            for (self.garden[1..(map_size - 1)], 1..) |row, i| {
+                for (row[1..(map_size - 1)], 1..) |plant, j| {
                     if (plant < 'A') continue;
 
                     var area: u64 = 0;
                     var sides: u64 = 0;
 
-                    var stack: [580]StackItem = undefined; // Max is 577
                     stack[0] = .{ .position = .{ @intCast(i), @intCast(j) }, .direction = .up };
 
                     var stack_length: usize = 1;
                     while (stack_length > 0) {
                         stack_length -= 1;
-                        const current = stack[stack_length];
 
-                        const tile = copy.get_tile_at(current.position);
+                        const current = stack[stack_length];
+                        const tile = self.get_tile_at(current.position);
+
                         if (tile == plant - 'A') continue;
                         if (tile != plant) {
                             const turn1 = current.position + current.direction.rotate().vector();
                             const turn2 = turn1 - current.direction.vector();
-                            const top_right = copy.get_tile_at(turn1);
-                            const right = copy.get_tile_at(turn2);
+                            const top_right = self.get_tile_at(turn1);
+                            const right = self.get_tile_at(turn2);
 
                             if ((top_right == plant or top_right == plant - 'A') or
                                 (right != plant and right != plant - 'A'))
@@ -111,7 +101,7 @@ fn Day12(length: usize) type {
                             continue;
                         }
 
-                        copy.set_tile_at(current.position, tile - 'A');
+                        self.set_tile_at(current.position, tile - 'A');
                         area += 1;
 
                         for ([_]Direction{ .up, .right, .down, .left }) |direction| {
@@ -138,13 +128,29 @@ fn Day12(length: usize) type {
     };
 }
 
+const Direction = enum {
+    up,
+    right,
+    down,
+    left,
+
+    fn vector(direction: Direction) @Vector(2, i8) {
+        const directions = [_][2]i8{ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
+        return directions[@intFromEnum(direction)];
+    }
+
+    fn rotate(direction: Direction) Direction {
+        return @enumFromInt((@as(u8, @intFromEnum(direction)) + 1) % 4);
+    }
+};
+
 pub const title = "Day 12: Garden Groups";
 
 pub fn run(_: std.mem.Allocator, is_run: bool) ![3]u64 {
     var timer = try std.time.Timer.start();
 
     const input = @embedFile("./data/day12.txt");
-    const puzzle = Day12(140).init(input);
+    var puzzle = Day12(140).init(input);
     const time0 = timer.read();
 
     const result1 = puzzle.part1();
