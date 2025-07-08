@@ -2,61 +2,61 @@ const std = @import("std");
 
 fn Day14(length: usize) type {
     return struct {
-        robot_positions: [length][2]i32 = undefined,
-        robot_velocities: [length][2]i32 = undefined,
-        map_size: [2]u8,
-
         const Self = @This();
 
-        fn init(input: []const u8, map_size: [2]u8) !Self {
+        positions: [length]@Vector(2, i32) = undefined,
+        velocities: [length]@Vector(2, i32) = undefined,
+        map_size: @Vector(2, u16),
+
+        fn init(input: []const u8, map_size: [2]u16) !Self {
             var result = Self{ .map_size = map_size };
 
             var i: usize = 0;
             var lexer = std.mem.tokenizeAny(u8, input, "\n ");
             while (lexer.next()) |line| : (i += 1) {
                 var inner_lexer = std.mem.tokenizeScalar(u8, line[2..], ',');
-                result.robot_positions[i][0] = try std.fmt.parseInt(i32, inner_lexer.next().?, 10);
-                result.robot_positions[i][1] = try std.fmt.parseInt(i32, inner_lexer.next().?, 10);
+                result.positions[i][0] = try std.fmt.parseInt(i32, inner_lexer.next().?, 10);
+                result.positions[i][1] = try std.fmt.parseInt(i32, inner_lexer.next().?, 10);
 
                 inner_lexer = std.mem.tokenizeScalar(u8, lexer.next().?[2..], ',');
-                result.robot_velocities[i][0] = try std.fmt.parseInt(i32, inner_lexer.next().?, 10);
-                result.robot_velocities[i][1] = try std.fmt.parseInt(i32, inner_lexer.next().?, 10);
+                result.velocities[i][0] = try std.fmt.parseInt(i32, inner_lexer.next().?, 10);
+                result.velocities[i][1] = try std.fmt.parseInt(i32, inner_lexer.next().?, 10);
             }
 
             return result;
         }
 
-        fn part1(self: Self, seconds: usize) u64 {
+        fn part1(self: Self, seconds: i32) u64 {
+            const seconds_vector: @Vector(2, i32) = @splat(seconds);
+            const mid_point = self.map_size / [_]u8{ 2, 2 };
+
             var counts: @Vector(4, u64) = @splat(0);
-            const mid_point = .{ self.map_size[0] / 2, self.map_size[1] / 2 };
-            for (self.robot_positions, self.robot_velocities) |position, velocity| {
-                const i_seconds: i32 = @intCast(seconds);
-                const destination = .{
-                    @mod((position[0] + velocity[0] * i_seconds), self.map_size[0]),
-                    @mod((position[1] + velocity[1] * i_seconds), self.map_size[1]),
-                };
-                counts += [_]u1{
-                    @intFromBool(destination[0] < mid_point[0] and destination[1] < mid_point[1]),
-                    @intFromBool(destination[0] < mid_point[0] and destination[1] > mid_point[1]),
-                    @intFromBool(destination[0] > mid_point[0] and destination[1] < mid_point[1]),
-                    @intFromBool(destination[0] > mid_point[0] and destination[1] > mid_point[1]),
-                };
+            for (self.positions, self.velocities) |position, velocity| {
+                const destination = @mod(position + velocity * seconds_vector, self.map_size);
+                const offset_x, const offset_y = destination - mid_point;
+
+                counts += @intFromBool(@Vector(4, bool){
+                    offset_x < 0 and offset_y < 0,
+                    offset_x < 0 and offset_y > 0,
+                    offset_x > 0 and offset_y < 0,
+                    offset_x > 0 and offset_y > 0,
+                });
             }
-            var result: u64 = 1;
-            for (0..4) |i| result *= counts[i];
-            return result;
+            return @reduce(.Mul, counts);
         }
 
         fn part2(self: Self) u64 {
             var result: u64 = 0;
             var safety_factor_min: u64 = std.math.maxInt(u64);
+
             for (0..(self.map_size[0] * self.map_size[1])) |seconds| {
-                const safety_factor = self.part1(seconds);
+                const safety_factor = self.part1(@intCast(seconds));
                 if (safety_factor < safety_factor_min) {
                     safety_factor_min = safety_factor;
                     result = seconds;
                 }
             }
+
             return result;
         }
     };

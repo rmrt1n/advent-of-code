@@ -212,7 +212,7 @@ test "day 06 part 1 sample 1" {
 }
 
 test "day 06 part 2 sample 1" {
-    const puzzle = Day06(10).init(sample_input);
+    var puzzle = Day06(10).init(sample_input);
     const result = puzzle.part2();
     try std.testing.expectEqual(6, result);
 }
