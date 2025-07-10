@@ -90,7 +90,7 @@ fn part1(self: Self) !u64 {
             for (directions) |direction| {
                 const forwards = position + direction;
                 var next_tile = self.map[forwards[0]][forwards[1]];
-                if (next_tile != 10 and next_tile - tile == 1) {
+                if (next_tile != 10 and next_tile == tile + 1) {
                     if (next_tile == 9) {
                         try trail_ends.put(forwards, {});
                     } else {
@@ -101,7 +101,7 @@ fn part1(self: Self) !u64 {
 
                 const backwards = position - direction;
                 next_tile = self.map[backwards[0]][backwards[1]];
-                if (next_tile != 10 and next_tile - tile == 1) {
+                if (next_tile != 10 and next_tile == tile + 1) {
                     if (next_tile == 9) {
                         try trail_ends.put(backwards, {});
                     } else {
@@ -184,7 +184,7 @@ fn part2(self: Self) u64 {
             for (directions) |direction| {
                 const forwards = position + direction;
                 var next_tile = self.map[forwards[0]][forwards[1]];
-                if (next_tile != 10 and next_tile - tile == 1) {
+                if (next_tile != 10 and next_tile == tile + 1) {
                     if (next_tile == 9) {
                         result += 1;
                     } else {
@@ -195,7 +195,7 @@ fn part2(self: Self) u64 {
 
                 const backwards = position - direction;
                 next_tile = self.map[backwards[0]][backwards[1]];
-                if (next_tile != 10 and next_tile - tile == 1) {
+                if (next_tile != 10 and next_tile == tile + 1) {
                     if (next_tile == 9) {
                         result += 1;
                     } else {
@@ -212,6 +212,9 @@ fn part2(self: Self) u64 {
 ```
 
 Like most people, I also unknowingly solved part two before solving part one because I didn't read the puzzle description correctly.
+
+> [!TIP]
+> We use `next_tile == tile + 1` instead of `next_tile - 1 == tile` to avoid potential integer overflows. Subtracting 1 from `next_tile` could wrap around if it's 0, whereas adding 1 to `tile` is safe.
 
 ## Benchmark
 

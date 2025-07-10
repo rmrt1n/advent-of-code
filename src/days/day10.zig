@@ -59,7 +59,7 @@ fn Day10(length: usize) type {
                     for (directions) |direction| {
                         const forwards = position + direction;
                         var next_tile = self.map[forwards[0]][forwards[1]];
-                        if (next_tile != 10 and next_tile - tile == 1) {
+                        if (next_tile != 10 and next_tile == tile + 1) {
                             if (next_tile == 9) {
                                 try trail_ends.put(forwards, {});
                             } else {
@@ -70,7 +70,7 @@ fn Day10(length: usize) type {
 
                         const backwards = position - direction;
                         next_tile = self.map[backwards[0]][backwards[1]];
-                        if (next_tile != 10 and next_tile - tile == 1) {
+                        if (next_tile != 10 and next_tile == tile + 1) {
                             if (next_tile == 9) {
                                 try trail_ends.put(backwards, {});
                             } else {
@@ -104,7 +104,7 @@ fn Day10(length: usize) type {
                     for (directions) |direction| {
                         const forwards = position + direction;
                         var next_tile = self.map[forwards[0]][forwards[1]];
-                        if (next_tile != 10 and next_tile - tile == 1) {
+                        if (next_tile != 10 and next_tile == tile + 1) {
                             if (next_tile == 9) {
                                 result += 1;
                             } else {
@@ -115,7 +115,7 @@ fn Day10(length: usize) type {
 
                         const backwards = position - direction;
                         next_tile = self.map[backwards[0]][backwards[1]];
-                        if (next_tile != 10 and next_tile - tile == 1) {
+                        if (next_tile != 10 and next_tile == tile + 1) {
                             if (next_tile == 9) {
                                 result += 1;
                             } else {
