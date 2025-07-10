@@ -180,7 +180,7 @@ test "day 12 part 1 sample 1" {
 }
 
 test "day 12 part 2 sample 1" {
-    const puzzle = Day12(4).init(sample_input);
+    var puzzle = Day12(4).init(sample_input);
     const result = puzzle.part2();
     try std.testing.expectEqual(80, result);
 }
@@ -205,7 +205,7 @@ test "day 12 part 1 sample 2" {
 }
 
 test "day 12 part 2 sample 2" {
-    const puzzle = Day12(10).init(sample_input2);
+    var puzzle = Day12(10).init(sample_input2);
     const result = puzzle.part2();
     try std.testing.expectEqual(1206, result);
 }
