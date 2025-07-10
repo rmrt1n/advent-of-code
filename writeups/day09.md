@@ -143,7 +143,7 @@ fn part2(self: Self) !u64 {
     var file_sizes: [file_count]u8 = undefined;
 
     var disk_index: u32 = 0;
-    for (0..file_count) |i| {
+    for (0..(file_count - 1)) |i| {
         const file_size = self.disk_map[i * 2];
         const free_size = self.disk_map[i * 2 + 1];
 
@@ -154,13 +154,18 @@ fn part2(self: Self) !u64 {
         if (free_size > 0) try free_heaps[free_size].add(disk_index);
         disk_index += free_size;
     }
+    file_indexes[file_count - 1] = disk_index;
+    file_sizes[file_count - 1] = self.disk_map[(file_count - 1) * 2];
     
     // ...
 }
 ```
 
-> [!NOTE]
-> We apply the ceiling function `std.math.divCeil` to ensure we get the last file when the disk map length is odd. By default, regular division rounds the result towards zero.
+We apply the ceiling function `std.math.divCeil` to ensure we get the last file when the disk map length is odd. By default, regular division rounds the result towards zero.
+
+We iterate up to `file_count - 1` because:
+- When the disk map length is odd, there is no last free segment, which means `self.disk_map[i * 2 + 1]` will panic. We'll just add the last file manually after the loop.
+- When the disk map length is even, we don't care about the left free segment, so we can ignore it. This is because files can only be moved to free segments on its left.
 
 Next, we iterate through the files starting from the end. For each file, find the leftmost free segment that fits it. If we find one, we "move" the file to the free segment. If there is remaining free space, we add it to the free heap of its size:
 
@@ -215,7 +220,7 @@ Here's the full `part2` function for your reference:
 
 ```zig
 fn part2(self: Self) !u64 {
-    // This is a 100x time speedup than using a regular ArrayList.
+    // This is much faster than using a regular ArrayList.
     const free_heap_capacity = 10;
     var free_heaps: [10]std.PriorityQueue(usize, void, compare) = undefined;
     for (1..free_heap_capacity) |i| {
@@ -228,7 +233,7 @@ fn part2(self: Self) !u64 {
     var file_sizes: [file_count]u8 = undefined;
 
     var disk_index: u32 = 0;
-    for (0..file_count) |i| {
+    for (0..(file_count - 1)) |i| {
         const file_size = self.disk_map[i * 2];
         const free_size = self.disk_map[i * 2 + 1];
 
@@ -239,6 +244,8 @@ fn part2(self: Self) !u64 {
         if (free_size > 0) try free_heaps[free_size].add(disk_index);
         disk_index += free_size;
     }
+    file_indexes[file_count - 1] = disk_index;
+    file_sizes[file_count - 1] = self.disk_map[(file_count - 1) * 2];
 
     for (0..file_count) |i| {
         const file_index = file_indexes[file_count - 1 - i];

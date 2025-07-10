@@ -61,7 +61,7 @@ fn Day09(length: usize) type {
             var file_sizes: [file_count]u8 = undefined;
 
             var disk_index: u32 = 0;
-            for (0..file_count) |i| {
+            for (0..(file_count - 1)) |i| {
                 const file_size = self.disk_map[i * 2];
                 const free_size = self.disk_map[i * 2 + 1];
 
@@ -72,6 +72,8 @@ fn Day09(length: usize) type {
                 if (free_size > 0) try free_heaps[free_size].add(disk_index);
                 disk_index += free_size;
             }
+            file_indexes[file_count - 1] = disk_index;
+            file_sizes[file_count - 1] = self.disk_map[(file_count - 1) * 2];
 
             for (0..file_count) |i| {
                 const file_index = file_indexes[file_count - 1 - i];
