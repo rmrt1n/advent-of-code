@@ -1,32 +1,17 @@
 const std = @import("std");
 
-const Direction = enum {
-    up,
-    right,
-    down,
-    left,
-
-    fn vector(direction: Direction) @Vector(2, i8) {
-        const directions = [_][2]i8{ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
-        return directions[@intFromEnum(direction)];
-    }
-
-    pub fn opposite(direction: Direction) Direction {
-        return @enumFromInt((@as(u8, @intFromEnum(direction)) + 2) % 4);
-    }
-};
-
 fn Day15(length: usize) type {
     return struct {
-        simulation1: SimulationPart1(length) = SimulationPart1(length){},
-        simulation2: SimulationPart2(length) = SimulationPart2(length){},
+        const Self = @This();
+
+        simulation1: Simulation(length, length) = .{},
+        simulation2: Simulation(length, length * 2) = .{},
         instructions: std.ArrayList(Direction) = undefined,
         allocator: std.mem.Allocator,
 
-        const Self = @This();
-
         fn init(input: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
+
             // Using an array here doesn't speed up parsing a lot, so keep it here for simplicity.
             result.instructions = std.ArrayList(Direction).init(allocator);
 
@@ -34,34 +19,36 @@ fn Day15(length: usize) type {
             var lexer = std.mem.splitScalar(u8, input, '\n');
             while (lexer.next()) |line| : (i += 1) {
                 if (line.len == 0) break;
+
                 for (line, 0..) |c, j| {
-                    result.simulation1.base.map[i][j] = c;
+                    result.simulation1.map[i][j] = c;
+
                     const wide_tile = switch (c) {
                         '#' => "##",
                         'O' => "[]",
                         '.', '@' => "..",
                         else => unreachable,
                     };
-                    @memcpy(result.simulation2.base.map[i][(2 * j)..(2 * j + 2)], wide_tile);
+                    @memcpy(result.simulation2.map[i][(2 * j)..(2 * j + 2)], wide_tile);
+
                     if (c == '@') {
-                        result.simulation1.base.map[i][j] = '.';
-                        result.simulation1.base.position = .{ @intCast(i), @intCast(j) };
-                        result.simulation2.base.position = .{ @intCast(i), @intCast(j * 2) };
+                        result.simulation1.position = .{ @intCast(i), @intCast(j) };
+                        result.simulation2.position = .{ @intCast(i), @intCast(j * 2) };
                     }
                 }
             }
 
             while (lexer.next()) |line| {
                 if (line.len == 0) break;
+
                 for (line) |c| {
-                    const dir = switch (c) {
+                    try result.instructions.append(switch (c) {
                         '<' => Direction.left,
                         '>' => Direction.right,
                         '^' => Direction.up,
                         'v' => Direction.down,
                         else => unreachable,
-                    };
-                    try result.instructions.append(dir);
+                    });
                 }
             }
 
@@ -74,106 +61,56 @@ fn Day15(length: usize) type {
 
         fn part1(self: Self) u64 {
             var simulation = self.simulation1;
+
             for (self.instructions.items) |direction| {
-                simulation.move(direction);
+                const original_position = simulation.position;
+
+                simulation.position += direction.vector();
+
+                switch (simulation.get_tile()) {
+                    '#' => simulation.position -= direction.vector(),
+                    '.' => {},
+                    'O' => {
+                        var distance: usize = 0;
+                        var tile = simulation.get_tile();
+                        while (tile == 'O') : (tile = simulation.get_tile()) {
+                            distance += 1;
+                            simulation.position += direction.vector();
+                        }
+
+                        if (tile == '#') {
+                            simulation.position = original_position;
+                            continue;
+                        }
+
+                        for (0..distance) |_| {
+                            simulation.set_tile(simulation.peek_tile(direction.opposite()));
+                            simulation.position -= direction.vector();
+                        }
+
+                        simulation.set_tile('.');
+                    },
+                    else => unreachable,
+                }
             }
-            return simulation.base.get_sum('O');
+
+            return simulation.get_sum('O');
         }
 
         fn part2(self: Self) u64 {
             var simulation = self.simulation2;
-            for (self.instructions.items) |direction| {
-                switch (direction) {
-                    .left, .right => simulation.move_horizontal(direction),
-                    .up, .down => simulation.move_vertical(direction),
-                }
-            }
-            return simulation.base.get_sum('[');
-        }
-    };
-}
+            const queue_capacity = 256;
+            var queue: [queue_capacity][2]i16 = undefined;
 
-fn SimulationPart1(comptime length: usize) type {
-    return struct {
-        base: Simulation(length, length) = Simulation(length, length){},
+            top: for (self.instructions.items) |direction| {
+                const original_position = simulation.position;
 
-        const Self = @This();
+                simulation.position += direction.vector();
 
-        fn move(self: *Self, direction: Direction) void {
-            var simulation = &self.base;
-            const original_position = simulation.position;
-            simulation.position += direction.vector();
-            switch (simulation.get_tile()) {
-                '#' => simulation.position -= direction.vector(),
-                '.' => {},
-                'O' => {
-                    var distance: usize = 0;
-                    var tile = simulation.get_tile();
-                    while (tile == 'O') : (tile = simulation.get_tile()) {
-                        distance += 1;
-                        simulation.position += direction.vector();
-                    }
-
-                    if (tile == '#') {
-                        simulation.position = original_position;
-                        return;
-                    }
-
-                    for (0..distance) |_| {
-                        simulation.set_tile(simulation.peek_tile(direction.opposite()));
-                        simulation.position -= direction.vector();
-                    }
-                    simulation.set_tile('.');
-                },
-                else => unreachable,
-            }
-        }
-    };
-}
-
-fn SimulationPart2(comptime length: usize) type {
-    return struct {
-        base: Simulation(length, length * 2) = Simulation(length, length * 2){},
-
-        const Self = @This();
-
-        fn move_horizontal(self: *Self, direction: Direction) void {
-            var simulation = &self.base;
-            const original_position = simulation.position;
-            simulation.position += direction.vector();
-            switch (simulation.get_tile()) {
-                '#' => simulation.position -= direction.vector(),
-                '.' => {},
-                '[', ']' => {
-                    var distance: usize = 0;
-                    var tile = simulation.get_tile();
-                    while (tile == '[' or tile == ']') : (tile = simulation.get_tile()) {
-                        distance += 1;
-                        simulation.position += direction.vector();
-                    }
-
-                    if (tile == '#') {
-                        simulation.position = original_position;
-                        return;
-                    }
-
-                    for (0..distance) |_| {
-                        simulation.set_tile(simulation.peek_tile(direction.opposite()));
-                        simulation.position -= direction.vector();
-                    }
-                    simulation.set_tile('.');
-                },
-                else => unreachable,
-            }
-        }
-
-        fn move_vertical(self: *Self, direction: Direction) void {
-            var simulation = &self.base;
-            const original_position = simulation.position;
-            simulation.position += direction.vector();
-            switch (simulation.get_tile()) {
-                '[', ']' => {
-                    var queue: [30][2]i16 = undefined;
+                const current_tile = simulation.get_tile();
+                if ((direction == .up or direction == .down) and
+                    (current_tile == '[' or current_tile == ']'))
+                {
                     if (simulation.get_tile() == '[') {
                         queue[0] = simulation.position;
                         queue[1] = simulation.position + Direction.right.vector();
@@ -203,37 +140,62 @@ fn SimulationPart2(comptime length: usize) type {
                             },
                             '#' => {
                                 simulation.position = original_position;
-                                return;
+                                continue :top;
                             },
                             '.' => continue,
                             else => unreachable,
                         }
                     }
+
                     for (0..right) |i| {
                         simulation.position = queue[right - 1 - i] + direction.vector();
                         simulation.set_tile(simulation.peek_tile(direction.opposite()));
                         simulation.position -= direction.vector();
                         simulation.set_tile('.');
                     }
+
                     simulation.position = original_position + direction.vector();
-                },
-                // Other cases just handle like you would in a horizontal movement.
-                '#', '.' => {
-                    simulation.position -= direction.vector();
-                    self.move_horizontal(direction);
-                },
-                else => unreachable,
+                } else {
+                    // Horizontal box pushes has the same logic as part one.
+                    switch (simulation.get_tile()) {
+                        '#' => simulation.position -= direction.vector(),
+                        '.' => {},
+                        '[', ']' => {
+                            var distance: usize = 0;
+                            var tile = simulation.get_tile();
+                            while (tile == '[' or tile == ']') : (tile = simulation.get_tile()) {
+                                distance += 1;
+                                simulation.position += direction.vector();
+                            }
+
+                            if (tile == '#') {
+                                simulation.position = original_position;
+                                continue;
+                            }
+
+                            for (0..distance) |_| {
+                                simulation.set_tile(simulation.peek_tile(direction.opposite()));
+                                simulation.position -= direction.vector();
+                            }
+
+                            simulation.set_tile('.');
+                        },
+                        else => unreachable,
+                    }
+                }
             }
+
+            return simulation.get_sum('[');
         }
     };
 }
 
 fn Simulation(comptime rows: usize, comptime columns: usize) type {
     return struct {
+        const Self = @This();
+
         map: [rows][columns]u8 = undefined,
         position: @Vector(2, i16) = undefined,
-
-        const Self = @This();
 
         fn peek_tile(self: Self, direction: Direction) u8 {
             const next = self.position + direction.vector();
@@ -257,21 +219,24 @@ fn Simulation(comptime rows: usize, comptime columns: usize) type {
             }
             return result;
         }
-
-        fn print(self: Self) void {
-            for (self.map, 0..) |line, i| {
-                for (line, 0..) |c, j| {
-                    if (self.position[0] == i and self.position[1] == j) {
-                        std.debug.print("@", .{});
-                    } else {
-                        std.debug.print("{c}", .{c});
-                    }
-                }
-                std.debug.print("\n", .{});
-            }
-        }
     };
 }
+
+const Direction = enum {
+    up,
+    right,
+    down,
+    left,
+
+    fn vector(direction: Direction) @Vector(2, i8) {
+        const directions = [_][2]i8{ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
+        return directions[@intFromEnum(direction)];
+    }
+
+    fn opposite(direction: Direction) Direction {
+        return @enumFromInt((@as(u8, @intFromEnum(direction)) + 2) % 4);
+    }
+};
 
 pub const title = "Day 15: Warehouse Woes";
 
