@@ -1,29 +1,13 @@
 const std = @import("std");
 
-const Direction = enum {
-    up,
-    right,
-    down,
-    left,
-
-    fn vector(direction: Direction) @Vector(2, i8) {
-        const directions = [_]@Vector(2, i8){ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
-        return directions[@intFromEnum(direction)];
-    }
-
-    fn opposite(direction: Direction) Direction {
-        return @enumFromInt((@as(u8, @intFromEnum(direction)) + 2) % 4);
-    }
-};
-
 fn Day16(length: usize) type {
     return struct {
+        const Self = @This();
+
         map: [length][length]u8 = undefined,
         start: [2]i16 = undefined,
         end: [2]i16 = undefined,
         allocator: std.mem.Allocator,
-
-        const Self = @This();
 
         fn init(input: []const u8, allocator: std.mem.Allocator) Self {
             var result = Self{ .allocator = allocator };
@@ -54,128 +38,107 @@ fn Day16(length: usize) type {
             var simulation = self;
             var visited = VisitedSet(length){};
 
-            var queue = std.PriorityQueue(Point1, void, Point1.compare).init(self.allocator, {});
+            var queue = std.PriorityQueue(Step1, void, Step1.compare).init(self.allocator, {});
             defer queue.deinit();
 
-            try queue.add(Point1{
+            try queue.add(Step1{
                 .position = simulation.start,
                 .direction = .right,
                 .score = 0,
             });
 
-            const result = while (queue.count() > 0) {
-                const point = queue.remove();
-                const tile = simulation.get_tile_at(point.position);
-                if (tile == 'E') break point.score;
+            return while (queue.count() > 0) {
+                const step = queue.remove();
 
-                visited.set(point.position, point.direction, point.score);
+                const tile = simulation.get_tile_at(step.position);
+                if (tile == 'E') break step.score;
+
+                visited.set(step.position, step.direction, step.score);
 
                 // The more we skip adding to the queue, the less allocations we do.
                 for ([_]Direction{ .up, .right, .down, .left }) |direction| {
-                    if (direction == point.direction.opposite()) continue;
+                    if (direction == step.direction.opposite()) continue;
 
-                    const next = point.position + direction.vector();
+                    const next = step.position + direction.vector();
                     if (simulation.get_tile_at(next) == '#') continue;
 
-                    const increment: u32 = if (direction == point.direction) 1 else 1001;
-                    const next_score = point.score + increment;
+                    const increment: u32 = if (direction == step.direction) 1 else 1001;
+                    const next_score = step.score + increment;
 
                     if (visited.get(next, direction) < next_score) continue;
 
-                    try queue.add(Point1{
+                    try queue.add(Step1{
                         .position = next,
                         .direction = direction,
                         .score = next_score,
                     });
                 }
             } else unreachable;
-            return result;
         }
-
-        const Point1 = struct {
-            position: [2]i16,
-            direction: Direction,
-            score: u32,
-
-            fn compare(_: void, a: Point1, b: Point1) std.math.Order {
-                return std.math.order(a.score, b.score);
-            }
-        };
 
         fn part2(self: Self) !u64 {
             var simulation = self;
             var visited = VisitedSet(length){};
 
-            var queue = std.PriorityQueue(Point2, void, Point2.compare).init(self.allocator, {});
+            var queue = std.PriorityQueue(Step2, void, Step2.compare).init(self.allocator, {});
             defer queue.deinit();
 
-            var first_point = Point2{
+            var first_step = Step2{
                 .position = simulation.start,
                 .direction = .right,
                 .score = 0,
                 .path = std.ArrayList([2]i16).init(self.allocator),
             };
-            try first_point.path.append(self.start);
-            try queue.add(first_point);
+            try first_step.path.append(self.start);
+            try queue.add(first_step);
 
             var best_score: ?u64 = null;
             var result_set = std.AutoHashMap([2]i16, void).init(self.allocator);
             defer result_set.deinit();
 
             while (queue.count() > 0) {
-                const point = queue.remove();
-                defer point.path.deinit();
+                const step = queue.remove();
+                defer step.path.deinit();
 
-                const tile = simulation.get_tile_at(point.position);
+                const tile = simulation.get_tile_at(step.position);
                 if (tile == 'E') {
                     if (best_score == null) {
-                        best_score = point.score; // This is guaranteed to be the best score.
+                        best_score = step.score; // This is guaranteed to be the best score.
                     }
-                    if (point.score == best_score) {
+                    if (step.score == best_score) {
                         // Add all tiles that lead to the best score.
-                        for (point.path.items) |item| try result_set.put(item, {});
+                        for (step.path.items) |item| try result_set.put(item, {});
                     }
                     continue;
                 }
 
-                visited.set(point.position, point.direction, point.score);
+                visited.set(step.position, step.direction, step.score);
 
                 // The more we skip adding to the queue, the less allocations we do.
                 for ([_]Direction{ .up, .right, .down, .left }) |direction| {
-                    if (direction == point.direction.opposite()) continue;
+                    if (direction == step.direction.opposite()) continue;
 
-                    const next = point.position + direction.vector();
+                    const next = step.position + direction.vector();
                     if (simulation.get_tile_at(next) == '#') continue;
 
-                    const increment: u32 = if (direction == point.direction) 1 else 1001;
-                    const next_score = point.score + increment;
+                    const increment: u32 = if (direction == step.direction) 1 else 1001;
+                    const next_score = step.score + increment;
 
                     if (visited.get(next, direction) < next_score) continue;
 
-                    var new_point = Point2{
+                    var new_step = Step2{
                         .position = next,
                         .direction = direction,
                         .score = next_score,
-                        .path = try point.path.clone(),
+                        .path = try step.path.clone(),
                     };
-                    try new_point.path.append(next);
-                    try queue.add(new_point);
+                    try new_step.path.append(next);
+                    try queue.add(new_step);
                 }
             }
 
             return result_set.count();
         }
-
-        const Point2 = struct {
-            position: [2]i16,
-            direction: Direction,
-            score: u32,
-            path: std.ArrayList([2]i16),
-
-            fn compare(_: void, a: Point2, b: Point2) std.math.Order {
-                return std.math.order(a.score, b.score);
-            }
-        };
 
         fn get_tile_at(self: Self, position: [2]i16) u8 {
             return self.map[@intCast(position[0])][@intCast(position[1])];
@@ -185,9 +148,9 @@ fn Day16(length: usize) type {
 
 fn VisitedSet(comptime length: usize) type {
     return struct {
-        map: [length][length][4]u32 = .{.{.{std.math.maxInt(u32)} ** 4} ** length} ** length,
-
         const Self = @This();
+
+        map: [length][length][4]u32 = .{.{.{std.math.maxInt(u32)} ** 4} ** length} ** length,
 
         fn get(self: Self, position: [2]i16, direction: Direction) u32 {
             return self.map[@intCast(position[0])][@intCast(position[1])][@intFromEnum(direction)];
@@ -198,6 +161,43 @@ fn VisitedSet(comptime length: usize) type {
         }
     };
 }
+
+const Step1 = struct {
+    position: [2]i16,
+    direction: Direction,
+    score: u32,
+
+    fn compare(_: void, a: Step1, b: Step1) std.math.Order {
+        return std.math.order(a.score, b.score);
+    }
+};
+
+const Step2 = struct {
+    position: [2]i16,
+    direction: Direction,
+    score: u32,
+    path: std.ArrayList([2]i16),
+
+    fn compare(_: void, a: Step2, b: Step2) std.math.Order {
+        return std.math.order(a.score, b.score);
+    }
+};
+
+const Direction = enum {
+    up,
+    right,
+    down,
+    left,
+
+    fn vector(direction: Direction) @Vector(2, i8) {
+        const directions = [_]@Vector(2, i8){ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
+        return directions[@intFromEnum(direction)];
+    }
+
+    fn opposite(direction: Direction) Direction {
+        return @enumFromInt((@as(u8, @intFromEnum(direction)) + 2) % 4);
+    }
+};
 
 pub const title = "Day 16: Reindeer Maze";
 
