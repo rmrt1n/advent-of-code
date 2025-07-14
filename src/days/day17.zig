@@ -1,19 +1,19 @@
 const std = @import("std");
 
-const Opcode = enum { adv, bxl, bst, jnz, bxc, out, bdv, cdv };
-
 fn Day17(length: usize) type {
     return struct {
-        registers: struct {
+        const Self = @This();
+        const Opcode = enum { adv, bxl, bst, jnz, bxc, out, bdv, cdv };
+        const Registers = struct {
             a: u64,
             b: u64,
             c: u64,
-        } = undefined,
+        };
+
+        registers: Registers = undefined,
         instructions: [length]u3 = undefined,
         ip: usize = 0,
         allocator: std.mem.Allocator = undefined,
-
-        const Self = @This();
 
         fn init(input: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
@@ -32,42 +32,40 @@ fn Day17(length: usize) type {
             return result;
         }
 
-        fn part1(self: Self) !std.ArrayList(u3) {
-            var simulation = self;
-            return simulation.run();
+        fn part1(self: *Self) !std.ArrayList(u3) {
+            var result = std.ArrayList(u3).init(self.allocator);
+            try self.run(&result);
+            return result;
         }
 
-        fn part2(self: Self) !u64 {
-            var simulation = self;
-
+        fn part2(self: *Self) !u64 {
             var queue = std.ArrayList(u64).init(self.allocator);
             defer queue.deinit();
 
             try queue.append(0);
 
-            var i: usize = 1;
-            while (i <= length) : (i += 1) {
-                var candidates_set = std.AutoHashMap(u64, void).init(self.allocator);
-                defer candidates_set.deinit();
+            var output = std.ArrayList(u3).init(self.allocator);
+            defer output.deinit();
 
-                while (queue.items.len > 0) {
+            for (1..(length + 1)) |i| {
+                const queue_length = queue.items.len;
+                for (0..queue_length) |_| {
                     const candidate = queue.pop().? * 8;
                     for (candidate..(candidate + 8)) |next_candidate| {
-                        simulation.reset();
-                        simulation.registers.a = next_candidate;
+                        // Clear output array and reset computer state.
+                        output.clearRetainingCapacity();
+                        self.reset();
+                        self.registers.a = next_candidate;
 
-                        const result = try simulation.run();
-                        defer result.deinit();
+                        try self.run(&output);
 
-                        if (std.mem.eql(u3, result.items[0..], simulation.instructions[(length - i)..])) {
-                            try candidates_set.put(next_candidate, {});
+                        // We build a in a reverse order, so compare against the end of the program.
+                        if (std.mem.eql(u3, output.items[0..], self.instructions[(length - i)..])) {
+                            // This is O(n), but in practice it results in the same speed as using
+                            // a separate array to store the next "level" (to append the the queue).
+                            try queue.insert(0, next_candidate);
                         }
                     }
-                }
-
-                var iterator = candidates_set.keyIterator();
-                while (iterator.next()) |key| {
-                    try queue.append(key.*);
                 }
             }
 
@@ -75,22 +73,7 @@ fn Day17(length: usize) type {
             return queue.items[0];
         }
 
-        fn get_operand(computer: *Self, is_combo: bool) u64 {
-            defer computer.ip += 1;
-            computer.ip += 1;
-            const operand = computer.instructions[computer.ip];
-            if (!is_combo) return operand;
-            return switch (operand) {
-                0, 1, 2, 3 => operand,
-                4 => computer.registers.a,
-                5 => computer.registers.b,
-                6 => computer.registers.c,
-                7 => unreachable, // reserved
-            };
-        }
-
-        fn run(self: *Self) !std.ArrayList(u3) {
-            var output = std.ArrayList(u3).init(self.allocator);
+        fn run(self: *Self, output: *std.ArrayList(u3)) !void {
             while (self.ip < self.instructions.len) {
                 const opcode: Opcode = @enumFromInt(self.instructions[self.ip]);
                 switch (opcode) {
@@ -137,7 +120,22 @@ fn Day17(length: usize) type {
                     },
                 }
             }
-            return output;
+        }
+
+        fn get_operand(computer: *Self, is_combo: bool) u64 {
+            defer computer.ip += 1;
+            computer.ip += 1;
+
+            const operand = computer.instructions[computer.ip];
+            if (!is_combo) return operand;
+
+            return switch (operand) {
+                0, 1, 2, 3 => operand,
+                4 => computer.registers.a,
+                5 => computer.registers.b,
+                6 => computer.registers.c,
+                7 => unreachable, // reserved
+            };
         }
 
         fn reset(self: *Self) void {
@@ -186,18 +184,3 @@ test "day 17 part 1 sample 1" {
     defer result.deinit();
     try std.testing.expectEqualSlices(u3, &[_]u3{ 4, 6, 3, 5, 6, 3, 5, 2, 1, 0 }, result.items);
 }
-
-// const sample_input2 =
-//     \\Register A: 2024
-//     \\Register B: 0
-//     \\Register C: 0
-//     \\
-//     \\Program: 0,3,5,4,3,0
-// ;
-//
-// test "day 17 part 2 sample 2" {
-//     var puzzle = try Day17(6).init(sample_input, std.testing.allocator);
-//     // TODO: fix (zig test src/days/day17.zig)
-//     const result = try puzzle.part2();
-//     try std.testing.expectEqual(117440, result);
-// }
