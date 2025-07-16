@@ -2,11 +2,11 @@
 
 [Full solution](../src/days/day19.zig).
 
-## Part one
+## Puzzle Input
 
-We're given a list of patterns and designs:
+Today's input is a list of **towel patterns** and **designs** to create:
 
-```
+```plaintext
 r, wr, b, g, bwu, rb, gb, br
 
 brwrr
@@ -19,17 +19,17 @@ brgr
 bbrgwb
 ```
 
-The first part of the input is a comma-separated list of towel patterns where each character represents a color: white (w), blue (u), black (b), red (r), or green (g). The second part of the input is a list of designs to be constructed from the available patterns.
+The first line is a list of towel patterns separated by commas. Each letter in the pattern is one of these colours: white (`w`), blue (`u`), black (`b`), red (`r`), or green (`g`). The second part is a list of designs to be assembled using the available towel patterns.
 
-In part one, we have to count how many of the designs are possible to be created from the available patterns. This is combinatorics problem similar to day seven. For each design, we'll have to generate all permutations of the patterns and check if we can construct the design from it. Before that, let's parse the input:
+We'll parse these into arrays of strings:
 
 ```zig
 fn Day19(n_patterns: usize, n_designs: usize) type {
     return struct {
+        const Self = @This();
+
         patterns: [n_patterns][]const u8 = undefined,
         designs: [n_designs][]const u8 = undefined,
-
-        const Self = @This();
 
         fn init(data: []const u8) Self {
             var result = Self{};
@@ -52,12 +52,19 @@ fn Day19(n_patterns: usize, n_designs: usize) type {
 }
 ```
 
-Here's the code to count the permutations for a design:
+## Part One
+
+We need to count the number of **possible designs**. A design is considered possible is if it can be created by concatenating one or more patterns in order. The patterns can be reused.
+
+This is combinatorics problem like in day 7. For each design, we'll count the number of different ways to construct it. In other words, we're counting the number of pattern permutations. If the permutation count is 0, the design is impossible to create.
+
+We'll create a function to count the permutations for a design:
 
 ```zig
 fn count_permutations(self: Self, design: []const u8) u64 {
-    // Initialize an array that will fit the longest string in the data (60 in my case).
-    var permutations = [_]u64{0} ** 64;
+    // Should fit empty string (0 length) -> longest string (60 in my input).
+    const longest_string = 60 + 1;
+    var permutations = [_]u64{0} ** longest_string;
 
     permutations[0] = 1;
 
@@ -74,29 +81,26 @@ fn count_permutations(self: Self, design: []const u8) u64 {
 }
 ```
 
-Here I went with a bottom-up dynamic programming (DP) approach. We create a DP array where `permutations[i]` stores the number of ways to build the first `i` characters of the design string. In python, the permutations array can be initialized using `[1] + [0] * len(design)`, but since the length of the design isn't known at compile time and I didn't want to dynamically allocate the array, I used a fixed size that can fit all of the designs by manually inspecting the input file.
+This functions uses a bottom-up, [dynamic programming (DP)](https://en.wikipedia.org/wiki/Dynamic_programming) approach to count the permutations. The DP array `permutations` stores the counts of each unique **substring length**. We count the frequency of substring lengths instead of the individual substrings because it's more efficient, i.e. we don't have to allocate memory for the strings. We're basically doing a lanternfish here.
 
-The base case is the empty string, with only one way to build it (which is by not using any patterns). Then we loop from `1` to `len(design)`. For each substring, we go through all the patterns and check if the pattern is a suffix of the substring. If it is, we increment `permutations[i]` with the count in `permutations[i - pattern.len]`. Because we have already computed the number of permutations up to `permutations[i]`, we can reuse the count which makes this approach efficient. We're basically doing a lanternfish.
-
-P.s. My first approach was a bit more crude where I store the frequency of substring in a hashmap. This worked but is incredibly inefficient because I was allocating new strings all the time. My original solution took around 2 seconds for both parts, which is way past my desired runtime limit. It was after I looked at other solutions that I realized you can just store the substring length as the key to the map instead of specific substrings.
-
-Anyways, this is all we need for both parts, as they are just light wrappers over the `count_permutations` function. Here's part one:
+For part one, we just have to call `count_permutations` and increment the result every time the the permutation count is greater than 0:
 
 ```zig
 fn part1(self: Self) u64 {
     var result: u64 = 0;
     for (self.designs) |design| {
-        if (self.count_permutations(design) > 0) {
-            result += 1;
-        }
+        result += @intFromBool(self.count_permutations(design) > 0);
     }
     return result;
 }
 ```
 
-## Part two
 
-Part two asked for the total number of ways to build each of the designs, i.e. sum of the number of permutations of each design. We did the heavy lifting already, so here's part two's code:
+## Part Two
+
+We have to find the **sum of ways to create all possible designs**.
+
+We already have a `count_permutations` function, so all we need to do is to go through the designs and sum up the results:
 
 ```zig
 fn part2(self: Self) u64 {
@@ -108,4 +112,12 @@ fn part2(self: Self) u64 {
 }
 ```
 
-## Benchmarks
+Another surprisingly easy part two!
+
+## Benchmark
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |

@@ -2,10 +2,10 @@ const std = @import("std");
 
 fn Day19(n_patterns: usize, n_designs: usize) type {
     return struct {
+        const Self = @This();
+
         patterns: [n_patterns][]const u8 = undefined,
         designs: [n_designs][]const u8 = undefined,
-
-        const Self = @This();
 
         fn init(data: []const u8) Self {
             var result = Self{};
@@ -28,9 +28,7 @@ fn Day19(n_patterns: usize, n_designs: usize) type {
         fn part1(self: Self) u64 {
             var result: u64 = 0;
             for (self.designs) |design| {
-                if (self.count_permutations(design) > 0) {
-                    result += 1;
-                }
+                result += @intFromBool(self.count_permutations(design) > 0);
             }
             return result;
         }
@@ -44,8 +42,9 @@ fn Day19(n_patterns: usize, n_designs: usize) type {
         }
 
         fn count_permutations(self: Self, design: []const u8) u64 {
-            // Initialize an array that will fit the longest string in the data (60 in my case).
-            var permutations = [_]u64{0} ** 64;
+            // Should fit empty string (0-length) -> longest string (60 in my input).
+            const longest_string = 60 + 1;
+            var permutations = [_]u64{0} ** longest_string;
 
             permutations[0] = 1;
 
