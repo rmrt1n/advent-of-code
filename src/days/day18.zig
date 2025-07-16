@@ -1,16 +1,15 @@
 const std = @import("std");
 
-const directions = [_]@Vector(2, i8){ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
-
 fn Day18(length: usize) type {
     return struct {
-        bytes: [length][2]usize = undefined,
-        allocator: std.mem.Allocator,
-
         const Self = @This();
 
-        fn init(input: []const u8, allocator: std.mem.Allocator) !Self {
-            var result = Self{ .allocator = allocator };
+        const directions: [2]@Vector(2, u1) = .{ .{ 1, 0 }, .{ 0, 1 } };
+
+        bytes: [length][2]u8 = undefined,
+
+        fn init(input: []const u8) !Self {
+            var result = Self{};
 
             var i: usize = 0;
             var lexer = std.mem.tokenizeScalar(u8, input, '\n');
@@ -18,65 +17,68 @@ fn Day18(length: usize) type {
                 var inner_lexer = std.mem.tokenizeScalar(u8, line, ',');
                 const y = try std.fmt.parseInt(usize, inner_lexer.next().?, 10);
                 const x = try std.fmt.parseInt(usize, inner_lexer.next().?, 10);
-                result.bytes[i] = .{ x, y };
+                result.bytes[i] = .{ @intCast(x), @intCast(y) };
             }
 
             return result;
         }
 
-        fn part1(self: Self, comptime map_size: usize, n_bytes: usize) !u64 {
-            var map: [map_size + 2][map_size + 2]u8 = undefined;
+        fn part1(self: Self, comptime map_size: usize, n_bytes: usize) u64 {
+            var map: [map_size + 2][map_size + 2]u8 = .{.{'#'} ** (map_size + 2)} ** (map_size + 2);
 
             @memset(map[1..(map_size + 1)], .{'#'} ++ (.{'.'} ** map_size) ++ .{'#'});
-            @memset(&map[0], '#');
-            @memset(&map[map_size + 1], '#');
-
-            for (0..n_bytes) |i| {
-                const coordinate = self.bytes[i] + @Vector(2, usize){ 1, 1 };
-                map[coordinate[0]][coordinate[1]] = '#';
+            for (self.bytes[0..n_bytes]) |byte| {
+                map[byte[0] + 1][byte[1] + 1] = '#';
             }
+
+            const queue_capacity = 8192;
+            var queue: [queue_capacity]struct { position: [2]u8, steps: u32 } = undefined;
+
+            queue[0] = .{ .position = .{ 1, 1 }, .steps = 0 };
 
             var result: u64 = std.math.maxInt(u64);
 
-            var queue = std.ArrayList(Point).init(self.allocator);
-            defer queue.deinit();
+            var left: usize = 0;
+            var right: usize = 1;
+            while (left < right) : (left += 1) {
+                const current = queue[left];
 
-            try queue.append(.{ .pos = .{ 1, 1 }, .steps = 0 });
-
-            const end = [_]i16{ map_size, map_size };
-            while (queue.items.len > 0) {
-                const current = queue.pop().?;
-                if (std.mem.eql(i16, &current.pos, &end)) {
+                if (std.mem.eql(u8, &current.position, &.{ map_size, map_size })) {
                     if (current.steps < result) result = current.steps;
                     continue;
                 }
 
-                if (map[@intCast(current.pos[0])][@intCast(current.pos[1])] == 'X') continue;
+                // Check again here because the queue can contain duplicate tiles. It's possibel to
+                // pop a visited tile that was just marked in the previous iteration.
+                if (map[current.position[0]][current.position[1]] == 'X') continue;
 
-                map[@intCast(current.pos[0])][@intCast(current.pos[1])] = 'X';
+                map[current.position[0]][current.position[1]] = 'X';
 
                 for (directions) |direction| {
-                    const next = current.pos + direction;
-                    if (map[@intCast(next[0])][@intCast(next[1])] == '#') continue;
-                    try queue.append(.{ .pos = next, .steps = current.steps + 1 });
+                    var next = current.position + direction;
+                    if (map[next[0]][next[1]] != '#' and map[next[0]][next[1]] != 'X') {
+                        queue[right] = .{ .position = next, .steps = current.steps + 1 };
+                        right += 1;
+                    }
+
+                    next = current.position - direction;
+                    if (map[next[0]][next[1]] != '#' and map[next[0]][next[1]] != 'X') {
+                        queue[right] = .{ .position = next, .steps = current.steps + 1 };
+                        right += 1;
+                    }
                 }
             }
 
             return result;
         }
 
-        const Point = struct {
-            pos: [2]i16,
-            steps: u32,
-        };
-
-        fn part2(self: Self, comptime map_size: usize, n_bytes: usize) ![2]u64 {
-            var left = n_bytes;
+        fn part2(self: Self, comptime map_size: usize, start: usize) [2]u64 {
+            var left = start;
             var right = self.bytes.len;
 
             while (left < right) {
                 const mid = left + (right - left) / 2;
-                const result = try self.part1(map_size, mid);
+                const result = self.part1(map_size, mid);
                 if (result == std.math.maxInt(u64)) {
                     right = mid;
                 } else {
@@ -93,17 +95,17 @@ fn Day18(length: usize) type {
 
 pub const title = "Day 18: RAM Run";
 
-pub fn run(allocator: std.mem.Allocator, is_run: bool) ![3]u64 {
+pub fn run(_: std.mem.Allocator, is_run: bool) ![3]u64 {
     var timer = try std.time.Timer.start();
 
     const input = @embedFile("./data/day18.txt");
-    const puzzle = try Day18(3450).init(input, allocator);
+    const puzzle = try Day18(3450).init(input);
     const time0 = timer.read();
 
-    const result1 = try puzzle.part1(71, 1024);
+    const result1 = puzzle.part1(71, 1024);
     const time1 = timer.read();
 
-    const result2 = try puzzle.part2(71, 1025);
+    const result2 = puzzle.part2(71, 1025);
     const time2 = timer.read();
 
     if (is_run) {
@@ -142,13 +144,13 @@ const sample_input =
 ;
 
 test "day 18 part 1 sample 1" {
-    const puzzle = try Day18(25).init(sample_input, std.testing.allocator);
-    const result = try puzzle.part1(7, 12);
+    const puzzle = try Day18(25).init(sample_input);
+    const result = puzzle.part1(7, 12);
     try std.testing.expectEqual(22, result);
 }
 
 test "day 18 part 2 sample 1" {
-    const puzzle = try Day18(25).init(sample_input, std.testing.allocator);
-    const result = try puzzle.part2(7, 13);
+    const puzzle = try Day18(25).init(sample_input);
+    const result = puzzle.part2(7, 13);
     try std.testing.expectEqual(.{ 6, 1 }, result);
 }
