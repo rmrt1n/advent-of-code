@@ -42,7 +42,7 @@ fn Day19(n_patterns: usize, n_designs: usize) type {
         }
 
         fn count_permutations(self: Self, design: []const u8) u64 {
-            // Should fit empty string (0-length) -> longest string (60 in my input).
+            // Should fit empty string (0 length) -> longest string (60 in my input).
             const longest_string = 60 + 1;
             var permutations = [_]u64{0} ** longest_string;
 

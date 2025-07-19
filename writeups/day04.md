@@ -49,7 +49,7 @@ We have to count the occurrences of the word **XMAS** in the word search. This w
 
 We'll use a sliding 4x4 window for this. For each window, we'll slice it in the four directions (horizontal, vertical, backwards diagonal, and forwards diagonal). For each slice, we'll check whether it contains either `XMAS` or its reverse `SAMX`.
 
-Here's a visualisation of the indexes of a window for the starting position `i,j`:
+Here's a visualisation of the indexes of a window for the starting position $i,j$:
 
 ```plaintext
 ┌─────────┬─────────┬─────────┬─────────┐
