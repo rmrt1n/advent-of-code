@@ -2,9 +2,9 @@ const std = @import("std");
 
 fn Day22(length: usize) type {
     return struct {
-        numbers: [length]u64 = undefined,
-
         const Self = @This();
+
+        numbers: [length]u64 = undefined,
 
         fn init(data: []const u8) !Self {
             var result = Self{};
@@ -20,7 +20,6 @@ fn Day22(length: usize) type {
 
         fn part1(self: Self) u64 {
             var result: u64 = 0;
-
             for (self.numbers) |secret_number| {
                 var next_secret_number = secret_number;
                 for (0..2000) |_| {
@@ -28,17 +27,19 @@ fn Day22(length: usize) type {
                 }
                 result += next_secret_number;
             }
-
             return result;
         }
 
         fn part2(self: Self) u64 {
-            var sequences = [_]u32{0} ** std.math.pow(u32, 19, 4);
-            var seen_sequences: [std.math.pow(u32, 19, 4)]u16 = undefined;
+            const sequences_capacity = comptime std.math.pow(u32, 19, 4);
+            var sequences = [_]u24{0} ** sequences_capacity;
+            var seen_sequences: [sequences_capacity]u16 = undefined;
+
+            var prices: [2001]u8 = undefined; // 1 original + 2000 generations
 
             for (self.numbers, 0..) |secret_number, i| {
-                var prices: [2001]u8 = undefined;
                 prices[0] = @intCast(secret_number % 10);
+
                 var next_secret_number = secret_number;
                 for (1..2001) |j| {
                     next_secret_number = next(next_secret_number);
@@ -47,7 +48,7 @@ fn Day22(length: usize) type {
 
                 var j: usize = 1;
                 while (j < 2001 - 3) : (j += 1) {
-                    var key: u32 = 0;
+                    var key: u24 = 0;
                     for (0..4) |k| {
                         const diff = @as(i16, prices[j + k]) - prices[j + k - 1];
                         key = key * 18 + @as(u8, @intCast(diff + 9));
@@ -55,13 +56,13 @@ fn Day22(length: usize) type {
 
                     // Saves around 15ms by not zeroing out the array.
                     if (seen_sequences[key] == i) continue;
-                    seen_sequences[key] = @intCast(i);
 
+                    seen_sequences[key] = @intCast(i);
                     sequences[key] += prices[j + 3];
                 }
             }
 
-            return std.mem.max(u32, &sequences);
+            return std.mem.max(u24, &sequences);
         }
 
         fn next(secret_number: u64) u64 {
