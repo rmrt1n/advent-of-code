@@ -2,11 +2,11 @@
 
 [Full solution](../src/days/day23.zig).
 
-## Part one
+## Puzzle Input
 
-On day 23 we're given list of computer connections, e.g.:
+Today's input is a network map which provides a list of **computer connections**:
 
-```
+```plaintext
 kh-tc
 qp-kh
 de-cg
@@ -18,19 +18,22 @@ vc-aq
 tb-ka
 wh-tc
 yn-cg
+kh-ub
 ```
 
-Where each line represents a connection between two computers. These connections aren't directional. We have an undirected graph of computers.
-
-For part one, we have to find all sets of three computers, where each computer is connected to each other. A twist here is that we have to find all the sets where at least one computer starts with the letter `t`. First, let's parse the input:
+Each line describes an undirected edge between two computers, so we'll parse the input into an adjacency list. Since nodes can have different numbers of neighbours, so we'll store their lengths in a separate array:
 
 ```zig
 fn Day23() type {
     return struct {
-        graph: [26 * 26][16]u16 = .{.{0} ** 16} ** (26 * 26),
-        allocator: std.mem.Allocator,
-
         const Self = @This();
+
+        const n_edges = 26 * 26;
+        const list_capacity = 13;
+
+        graph: [n_edges][list_capacity]u16 = undefined,
+        lengths: [n_edges]u8 = .{0} ** n_edges,
+        allocator: std.mem.Allocator,
 
         fn init(data: []const u8, allocator: std.mem.Allocator) Self {
             var result = Self{ .allocator = allocator };
@@ -41,11 +44,13 @@ fn Day23() type {
                 const from = 26 * @as(u16, @intCast(line[0] - 'a')) + (line[1] - 'a');
                 const to = 26 * @as(u16, @intCast(line[3] - 'a')) + (line[4] - 'a');
 
-                result.graph[from][0] += 1;
-                result.graph[from][result.graph[from][0]] = to;
+                var index = &result.lengths[from];
+                result.graph[from][index.*] = to;
+                index.* += 1;
 
-                result.graph[to][0] += 1;
-                result.graph[to][result.graph[to][0]] = from;
+                index = &result.lengths[to];
+                result.graph[to][index.*] = from;
+                index.* += 1;
             }
 
             return result;
@@ -54,19 +59,20 @@ fn Day23() type {
 }
 ```
 
-Here I parse the input into an adjacency list, which in this case is a `(26 * 26)x16` matrix. The computers have a sset format `[a-z][a-z]`, which makes the number of unique computers 26 * 26 = 676. I used a `[16]u16` to store the list instead of a `std.ArrayList` to avoid allocation. 16 is a safe number because **spoilers**: the maximum number of edges a node can have is 13. This isn't meant to be a general solution so it's okay to hardcode this number.
+Each computer is represented by a pair of lowercase characters. Instead of storing them directly as strings, we convert them into a unique integer ID using a 2-digit base-26 encoding (same trick as in previous days).
 
-The computers are encoded as `u16` by encoding the characters according to their alphabetical order, e.g. `a = 0`, `b = 1`, and so on. This is effectively a base 26 encoding, so you can concatenate them by multiplying the first digit with 26 and adding the second digit. E.g., after encoding `aa` becomes 0 (0 * 26 + 0), `bc` becomes 28 (1 * 26 + 2), etc.
+A computer is represented by a pair of lowercase character. Instead of storing them an array `[2]u8`, we'll convert these into an integer representation just like in the day 22. There are 26 possible characters, so we'll represent a computer as a 2-digit base 26 integer `u16`.
 
-Now for the solution. I opted for the simplest solution:
+> [!NOTE]
+> We'll get to why the list capacity is 13 in part two.
 
-1. For each node in the graph,
-2. For each pair (node A and node B) of node in the graph's neighbors,
-3. if node B is in node A's neighbors list, then we have a triangle.
+## Part One
 
-Since this is a undirected graph, order doesn't matter so we have to keep track of the triangles in a set. To minimize computation, we can just search the nodes that start with `t`, which is stored in the indexes 494 (19 * 26) to 520 (19 * 26 + 26). (`t` is the 19th alphabet).
+We have to count the sets of **three inter-connected computers** that contains at least one computer that **starts with a `t`**. In graph terms, what we have to find are triangles, or more formally, [cliques](https://en.wikipedia.org/wiki/Clique_(graph_theory)) of size 3. A clique is a set of nodes where every node is connected to every other node.
 
-Here's the code for part one:
+We'll go with the simplest approach here. For every node, we'll check all pairs of its neighbours to see if they are also connected to each other. We'll use a set to keep track of the triangles. Since the graph is undirected, we'll sort the triangles first to make sure we don't have duplicates in the set.
+
+At the end, we just have to return the number of items in the set. Here's the code:
 
 ```zig
 fn part1(self: Self) !u64 {
@@ -77,16 +83,14 @@ fn part1(self: Self) !u64 {
     const to = 26 * ('t' - 'a') + ('z' - 'a');
 
     for (from..(to + 1)) |first| {
-        if (self.graph[first][0] == 0) continue;
-        for (1..self.graph[first][0]) |i| {
-            for (i + 1..self.graph[first][0] + 1) |j| {
-                const second = self.graph[first][i];
-                const third = self.graph[first][j];
+        if (self.lengths[first] == 0) continue;
 
-                if (self.graph[second][0] == 0) continue;
-                for (1..self.graph[second][0] + 1) |k| {
-                    const item = self.graph[second][k];
-                    if (item == third) {
+        for (self.graph[first], 0..) |second, i| {
+            if (self.lengths[second] == 0) continue;
+
+            for (self.graph[first][i..]) |third| {
+                for (self.graph[second]) |neighbor| {
+                    if (neighbor == third) {
                         var set = [3]u16{ @as(u16, @intCast(first)), second, third };
                         std.mem.sort(u16, &set, {}, std.sort.asc(u16));
                         try sets.put(set, {});
@@ -100,26 +104,21 @@ fn part1(self: Self) !u64 {
 }
 ```
 
-## Part two
+## Part Two
 
-In part two, now we have to find the largest set of computers that are all connected to each other. I didn't know this when solving it during the day itself, but what we have to find is the [maximum clique](https://en.wikipedia.org/wiki/Clique_problem). A clique is when every node in a subgraph is connected to each other just like the triangle in part one. The maximum clique is the largest clique in the graph.
+We have to find the **password** to the LAN party. The LAN party is the **maximum clique** in the graph, and the password is list of computers names in the clique sorted alphabetically.
 
-There's also the concept called a maximal clique, which is a clique that can't be extended anymore. A maximum clique is the largest maximal clique, but a maximal clique isn't necessarily the maximum.
+The [maximum clique](https://en.wikipedia.org/wiki/Clique_problem) of a graph is the clique with the largest number of nodes. There's also the concept of a maximal clique, which is a clique that cannot be extended by an adjacent node. The maximum clique is also the largest maximal clique.
 
-The input for this day is specially crafted where each node has exactly 13 neighbors (edges). This makes the largest maximal clique we can get is 13. The sample input is also specially crafted where each node has exactly 4 neighbors and the maximum clique size is 4.
+The input for this day is specially crafted where each node a degree of 13, i.e. every node has exactly 13 neighbours. This is why `list_capacity` is 13. This means the largest possible **maximal clique** size is 14. We're not guaranteed a maximal clique of size 14 (as we'll soon see), but it's the theoretical limit.
 
-A "well-known" algorithm for finding all maximal cliques in a graph is the [Bron-Kerbosch algorithm](https://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm). We can use this to get all the maximal cliques, and when we find a maximal clique of size 13, then we have found the answer. Here's the Bron-kerbosch algorithm implemented in Zig:
+We can use a we a "well-known" algorithm for finding all maximal cliques in a graph called the [Bron-Kerbosch algorithm](https://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm). I won't explain the algorithm because I'm bad at it, so here's the algorithm implemented iteratively in Zig:
 
 ```zig
-const BitSet = std.StaticBitSet(26 * 26);
-
-const StackItem = struct {
-    current: BitSet,
-    candidate: BitSet,
-    excluded: BitSet,
-};
+const BitSet = std.StaticBitSet(n_edges);
 
 fn bron_kerbosch(self: Self, max_clique_size: usize) !BitSet {
+    const StackItem = struct { current: BitSet, candidate: BitSet, excluded: BitSet };
     var stack = std.ArrayList(StackItem).init(self.allocator);
     defer stack.deinit();
 
@@ -128,8 +127,8 @@ fn bron_kerbosch(self: Self, max_clique_size: usize) !BitSet {
         .candidate = BitSet.initEmpty(),
         .excluded = BitSet.initEmpty(),
     };
-    for (self.graph, 0..) |connections, i| {
-        if (connections[0] > 0) first.candidate.set(i);
+    for (self.lengths, 0..) |len, i| {
+        if (len > 0) first.candidate.set(i);
     }
     try stack.append(first);
 
@@ -146,10 +145,12 @@ fn bron_kerbosch(self: Self, max_clique_size: usize) !BitSet {
         if (item.candidate.findFirstSet()) |vertex| {
             item.candidate.unset(vertex);
 
+            const n_neighbors = self.lengths[vertex];
+
             var neighbors = BitSet.initEmpty();
-            if (self.graph[vertex][0] > 0) {
-                for (1..self.graph[vertex][0] + 1) |i| {
-                    neighbors.set(self.graph[vertex][i]);
+            if (n_neighbors > 0) {
+                for (self.graph[vertex]) |neighbor| {
+                    neighbors.set(neighbor);
                 }
             }
 
@@ -168,9 +169,14 @@ fn bron_kerbosch(self: Self, max_clique_size: usize) !BitSet {
 }
 ```
 
-It's an iterative version of the pseudocode from the Bron-Kerbosch Wikipedia page. I used Zig's `std.StaticBitSet` to represent the set of nodes because it is more efficient than a `std.AutoHashmap(T, void)` for this particular use case. The items are represented as `u1` in arrays and it doesn't do any dynamic memory allocation.
+We used Zig's `std.StaticBitSet` instead of `std.AutoHashMap(T,void)` because it's more efficient for this particular use case. It also doesn't do any dynamic memory allocation.
 
-After getting the maximum clique from this function, we just have to sort the nodes and convert them back to regular characters:
+> [!NOTE]
+> I cheated a bit here. Instead of finding all maximal cliques like a traditional Bron-Kerbosch, I pass a `max_clique_size` and return early when a clique of the same size is found.
+>
+> We can do this because the inputs are well structured enough that the maximum clique size is always the same as the node degree. The same logic applies to the sample inputs. Each node has a degree of 4 and the maximum clique size is also "coincidentally" 4.
+
+All that’s left is to call `bron_kerbosch`, sort the result, and convert the nodes back to their character representations:
 
 ```zig
 fn part2(self: Self, comptime max_clique_size: usize) ![]const u8 {
@@ -178,18 +184,19 @@ fn part2(self: Self, comptime max_clique_size: usize) ![]const u8 {
     defer cliques.deinit();
 
     var candidates = BitSet.initEmpty();
-    for (self.graph, 0..) |connections, i| {
-        if (connections[0] > 0) candidates.set(i);
+    for (self.lengths, 0..) |len, i| {
+        if (len > 0) candidates.set(i);
     }
 
     const max_clique = try self.bron_kerbosch(max_clique_size);
-
     var nodes: [max_clique_size]u16 = undefined;
+
     var i: usize = 0;
     var iterator = max_clique.iterator(.{});
     while (iterator.next()) |entry| : (i += 1) {
         nodes[i] = @intCast(entry);
     }
+
     std.mem.sort(u16, &nodes, {}, std.sort.asc(u16));
 
     var result = try self.allocator.alloc(u8, max_clique_size * 2);
@@ -201,6 +208,10 @@ fn part2(self: Self, comptime max_clique_size: usize) ![]const u8 {
 }
 ```
 
-**Disclaimer**: I have never heard of the Bron-Kerborsch algorithm before in my life. I found it after I gave up and started looking at other people's solution. Then I just translated the pseudocode from the Wikipedia page and called it a day. My original solution was a slow recursive solution. It's only just now that I converted it to iterative to speed it up.
+## Benchmark
 
-## Benchmarks
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |

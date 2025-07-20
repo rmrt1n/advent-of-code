@@ -166,7 +166,7 @@ fn part2(self: Self) u64 {
 >     }
 > }
 > ```
-> Instead, we keep a map of each sequence to the last iteration it was seen. If the stored value matches the current iteration, it means we've already seen it so we can skip it.
+> Instead, we keep a map of each sequence to the last iteration it was seen. If the stored value matches the current iteration, it means we've already seen it so we can skip it:
 > 
 > ```zig
 > var seen_sequences: [sequences_capacity]u16 = undefined;

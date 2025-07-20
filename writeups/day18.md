@@ -19,19 +19,6 @@ Today's input is a list of **falling byte** positions:
 3,3
 2,6
 5,1
-1,2
-5,5
-2,5
-6,5
-1,4
-0,4
-6,4
-1,1
-6,1
-1,0
-0,5
-1,6
-2,0
 ```
 
 We'll parse this into an array:

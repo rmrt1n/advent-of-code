@@ -2,10 +2,15 @@ const std = @import("std");
 
 fn Day23() type {
     return struct {
-        graph: [26 * 26][16]u16 = .{.{0} ** 16} ** (26 * 26),
-        allocator: std.mem.Allocator,
-
         const Self = @This();
+        const BitSet = std.StaticBitSet(n_edges);
+
+        const n_edges = 26 * 26;
+        const list_capacity = 13;
+
+        graph: [n_edges][list_capacity]u16 = undefined,
+        lengths: [n_edges]u8 = .{0} ** n_edges,
+        allocator: std.mem.Allocator,
 
         fn init(data: []const u8, allocator: std.mem.Allocator) Self {
             var result = Self{ .allocator = allocator };
@@ -16,11 +21,13 @@ fn Day23() type {
                 const from = 26 * @as(u16, @intCast(line[0] - 'a')) + (line[1] - 'a');
                 const to = 26 * @as(u16, @intCast(line[3] - 'a')) + (line[4] - 'a');
 
-                result.graph[from][0] += 1;
-                result.graph[from][result.graph[from][0]] = to;
+                var index = &result.lengths[from];
+                result.graph[from][index.*] = to;
+                index.* += 1;
 
-                result.graph[to][0] += 1;
-                result.graph[to][result.graph[to][0]] = from;
+                index = &result.lengths[to];
+                result.graph[to][index.*] = from;
+                index.* += 1;
             }
 
             return result;
@@ -34,16 +41,14 @@ fn Day23() type {
             const to = 26 * ('t' - 'a') + ('z' - 'a');
 
             for (from..(to + 1)) |first| {
-                if (self.graph[first][0] == 0) continue;
-                for (1..self.graph[first][0]) |i| {
-                    for (i + 1..self.graph[first][0] + 1) |j| {
-                        const second = self.graph[first][i];
-                        const third = self.graph[first][j];
+                if (self.lengths[first] == 0) continue;
 
-                        if (self.graph[second][0] == 0) continue;
-                        for (1..self.graph[second][0] + 1) |k| {
-                            const item = self.graph[second][k];
-                            if (item == third) {
+                for (self.graph[first], 0..) |second, i| {
+                    if (self.lengths[second] == 0) continue;
+
+                    for (self.graph[first][i..]) |third| {
+                        for (self.graph[second]) |neighbor| {
+                            if (neighbor == third) {
                                 var set = [3]u16{ @as(u16, @intCast(first)), second, third };
                                 std.mem.sort(u16, &set, {}, std.sort.asc(u16));
                                 try sets.put(set, {});
@@ -61,18 +66,19 @@ fn Day23() type {
             defer cliques.deinit();
 
             var candidates = BitSet.initEmpty();
-            for (self.graph, 0..) |connections, i| {
-                if (connections[0] > 0) candidates.set(i);
+            for (self.lengths, 0..) |len, i| {
+                if (len > 0) candidates.set(i);
             }
 
             const max_clique = try self.bron_kerbosch(max_clique_size);
-
             var nodes: [max_clique_size]u16 = undefined;
+
             var i: usize = 0;
             var iterator = max_clique.iterator(.{});
             while (iterator.next()) |entry| : (i += 1) {
                 nodes[i] = @intCast(entry);
             }
+
             std.mem.sort(u16, &nodes, {}, std.sort.asc(u16));
 
             var result = try self.allocator.alloc(u8, max_clique_size * 2);
@@ -83,15 +89,8 @@ fn Day23() type {
             return result;
         }
 
-        const BitSet = std.StaticBitSet(26 * 26);
-
-        const StackItem = struct {
-            current: BitSet,
-            candidate: BitSet,
-            excluded: BitSet,
-        };
-
         fn bron_kerbosch(self: Self, max_clique_size: usize) !BitSet {
+            const StackItem = struct { current: BitSet, candidate: BitSet, excluded: BitSet };
             var stack = std.ArrayList(StackItem).init(self.allocator);
             defer stack.deinit();
 
@@ -100,8 +99,8 @@ fn Day23() type {
                 .candidate = BitSet.initEmpty(),
                 .excluded = BitSet.initEmpty(),
             };
-            for (self.graph, 0..) |connections, i| {
-                if (connections[0] > 0) first.candidate.set(i);
+            for (self.lengths, 0..) |len, i| {
+                if (len > 0) first.candidate.set(i);
             }
             try stack.append(first);
 
@@ -118,10 +117,12 @@ fn Day23() type {
                 if (item.candidate.findFirstSet()) |vertex| {
                     item.candidate.unset(vertex);
 
+                    const n_neighbors = self.lengths[vertex];
+
                     var neighbors = BitSet.initEmpty();
-                    if (self.graph[vertex][0] > 0) {
-                        for (1..self.graph[vertex][0] + 1) |i| {
-                            neighbors.set(self.graph[vertex][i]);
+                    if (n_neighbors > 0) {
+                        for (self.graph[vertex]) |neighbor| {
+                            neighbors.set(neighbor);
                         }
                     }
 
