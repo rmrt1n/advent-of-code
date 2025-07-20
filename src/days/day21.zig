@@ -1,14 +1,12 @@
 const std = @import("std");
 
-const Keypad = enum(u8) { zero, one, two, three, four, five, six, seven, eight, nine, accept, left, up, down, right };
-
 fn Day21() type {
     return struct {
+        const Self = @This();
+
         numbers: [5]u16 = undefined,
         codes: [5][5]Keypad = .{.{.accept} ** 5} ** 5,
         allocator: std.mem.Allocator,
-
-        const Self = @This();
 
         fn init(input: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
@@ -44,21 +42,27 @@ fn Day21() type {
         }
 
         fn get_sequence_length_for_depth(self: Self, code: []const Keypad, depth: u8) !u64 {
-            var frequencies = std.StringHashMap(u64).init(self.allocator);
-            defer frequencies.deinit();
+            var frequencies: [2]std.StringHashMap(u64) = undefined;
+            for (0..2) |i| frequencies[i] = std.StringHashMap(u64).init(self.allocator);
+            defer for (0..2) |i| frequencies[i].deinit();
 
+            var id: usize = 0;
             var window = std.mem.window(Keypad, code, 2, 1);
             while (window.next()) |pair| {
                 const instruction = &instructions[@intFromEnum(pair[0])][@intFromEnum(pair[1])];
                 const best_moves = instruction[1..(@intFromEnum(instruction[0]) + 1)];
-                const entry = try frequencies.getOrPutValue(@ptrCast(best_moves), 0);
+                const entry = try frequencies[id].getOrPutValue(@ptrCast(best_moves), 0);
                 entry.value_ptr.* += 1;
             }
 
             for (0..depth) |_| {
-                var new_frequencies = std.StringHashMap(u64).init(self.allocator);
+                var old_frequencies = &frequencies[id % 2];
+                var new_frequencies = &frequencies[(id + 1) % 2];
+                id += 1;
 
-                var iterator = frequencies.iterator();
+                defer old_frequencies.clearRetainingCapacity();
+
+                var iterator = old_frequencies.iterator();
                 while (iterator.next()) |entry| {
                     const key = entry.key_ptr.*;
                     const value = entry.value_ptr.*;
@@ -71,20 +75,19 @@ fn Day21() type {
                         new_entry.value_ptr.* += value;
                     }
                 }
-
-                frequencies.deinit();
-                frequencies = new_frequencies;
             }
 
-            var length: u64 = 0;
-            var it = frequencies.iterator();
+            var result: u64 = 0;
+            var it = frequencies[id % 2].iterator();
             while (it.next()) |e| {
-                length += (e.key_ptr.*.len - 1) * e.value_ptr.*;
+                result += (e.key_ptr.*.len - 1) * e.value_ptr.*;
             }
-            return length;
+            return result;
         }
     };
 }
+
+const Keypad = enum(u8) { n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, accept, left, up, down, right };
 
 pub const title = "Day 21: Keypad Conundrum";
 
@@ -128,260 +131,261 @@ test "day 21 part 2 sample 1" {
     try std.testing.expectEqual(154115708116294, result);
 }
 
-const instructions: [15][15][8]Keypad = .{
+const moves_capacity = 8;
+const instructions: [15][15][moves_capacity]Keypad = .{
     .{
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 0->0 (A)
-        .{ .four, .accept, .up, .left, .accept, .zero, .zero, .zero }, // 0->1 (^<A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // 0->2 (^A)
-        .{ .four, .accept, .up, .right, .accept, .zero, .zero, .zero }, // 0->3 (^>A)
-        .{ .five, .accept, .up, .up, .left, .accept, .zero, .zero }, // 0->4 (^^<A)
-        .{ .four, .accept, .up, .up, .accept, .zero, .zero, .zero }, // 0->5 (^^A)
-        .{ .five, .accept, .up, .up, .right, .accept, .zero, .zero }, // 0->6 (^^>A)
-        .{ .six, .accept, .up, .up, .up, .left, .accept, .zero }, // 0->7 (^^^<A)
-        .{ .five, .accept, .up, .up, .up, .accept, .zero, .zero }, // 0->8 (^^^A)
-        .{ .six, .accept, .up, .up, .up, .right, .accept, .zero }, // 0->9 (^^^>A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // 0->accept (>A)
-        .{.zero} ** 8, // 0->left (unused)
-        .{.zero} ** 8, // 0->up (unused)
-        .{.zero} ** 8, // 0->down (unused)
-        .{.zero} ** 8, // 0->right (unused)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 0->0 (A)
+        .{ .n4, .accept, .up, .left, .accept, .n0, .n0, .n0 }, // 0->1 (^<A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // 0->2 (^A)
+        .{ .n4, .accept, .up, .right, .accept, .n0, .n0, .n0 }, // 0->3 (^>A)
+        .{ .n5, .accept, .up, .up, .left, .accept, .n0, .n0 }, // 0->4 (^^<A)
+        .{ .n4, .accept, .up, .up, .accept, .n0, .n0, .n0 }, // 0->5 (^^A)
+        .{ .n5, .accept, .up, .up, .right, .accept, .n0, .n0 }, // 0->6 (^^>A)
+        .{ .n6, .accept, .up, .up, .up, .left, .accept, .n0 }, // 0->7 (^^^<A)
+        .{ .n5, .accept, .up, .up, .up, .accept, .n0, .n0 }, // 0->8 (^^^A)
+        .{ .n6, .accept, .up, .up, .up, .right, .accept, .n0 }, // 0->9 (^^^>A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // 0->accept (>A)
+        undefined, // 0->left (unused)
+        undefined, // 0->up (unused)
+        undefined, // 0->down (unused)
+        undefined, // 0->right (unused)
     },
     .{
-        .{ .four, .accept, .right, .down, .accept, .zero, .zero, .zero }, // 1->0 (>vA)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 1->1 (A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // 1->2 (>A)
-        .{ .four, .accept, .right, .right, .accept, .zero, .zero, .zero }, // 1->3 (>>A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // 1->4 (^A)
-        .{ .four, .accept, .up, .right, .accept, .zero, .zero, .zero }, // 1->5 (^>A)
-        .{ .five, .accept, .up, .right, .right, .accept, .zero, .zero }, // 1->6 (^>>A)
-        .{ .four, .accept, .up, .up, .accept, .zero, .zero, .zero }, // 1->7 (^^A)
-        .{ .five, .accept, .up, .up, .right, .accept, .zero, .zero }, // 1->8 (^^>A)
-        .{ .six, .accept, .up, .up, .right, .right, .accept, .zero }, // 1->9 (^^>>A)
-        .{ .five, .accept, .right, .right, .down, .accept, .zero, .zero }, // 1->accept (>>vA)
-        .{.zero} ** 8, // 1->left (unused)
-        .{.zero} ** 8, // 1->up (unused)
-        .{.zero} ** 8, // 1->down (unused)
-        .{.zero} ** 8, // 1->right (unused)
+        .{ .n4, .accept, .right, .down, .accept, .n0, .n0, .n0 }, // 1->0 (>vA)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 1->1 (A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // 1->2 (>A)
+        .{ .n4, .accept, .right, .right, .accept, .n0, .n0, .n0 }, // 1->3 (>>A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // 1->4 (^A)
+        .{ .n4, .accept, .up, .right, .accept, .n0, .n0, .n0 }, // 1->5 (^>A)
+        .{ .n5, .accept, .up, .right, .right, .accept, .n0, .n0 }, // 1->6 (^>>A)
+        .{ .n4, .accept, .up, .up, .accept, .n0, .n0, .n0 }, // 1->7 (^^A)
+        .{ .n5, .accept, .up, .up, .right, .accept, .n0, .n0 }, // 1->8 (^^>A)
+        .{ .n6, .accept, .up, .up, .right, .right, .accept, .n0 }, // 1->9 (^^>>A)
+        .{ .n5, .accept, .right, .right, .down, .accept, .n0, .n0 }, // 1->accept (>>vA)
+        undefined, // 1->left (unused)
+        undefined, // 1->up (unused)
+        undefined, // 1->down (unused)
+        undefined, // 1->right (unused)
     },
     .{
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // 2->0 (vA)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // 2->1 (<A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 2->2 (A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // 2->3 (>A)
-        .{ .four, .accept, .left, .up, .accept, .zero, .zero, .zero }, // 2->4 (<^A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // 2->5 (^A)
-        .{ .four, .accept, .up, .right, .accept, .zero, .zero, .zero }, // 2->6 (^>A)
-        .{ .five, .accept, .left, .up, .up, .accept, .zero, .zero }, // 2->7 (<^^A)
-        .{ .four, .accept, .up, .up, .accept, .zero, .zero, .zero }, // 2->8 (^^A)
-        .{ .five, .accept, .up, .up, .right, .accept, .zero, .zero }, // 2->9 (^^>A)
-        .{ .four, .accept, .down, .right, .accept, .zero, .zero, .zero }, // 2->accept (v>A)
-        .{.zero} ** 8, // 2->left (unused)
-        .{.zero} ** 8, // 2->up (unused)
-        .{.zero} ** 8, // 2->down (unused)
-        .{.zero} ** 8, // 2->right (unused)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // 2->0 (vA)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // 2->1 (<A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 2->2 (A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // 2->3 (>A)
+        .{ .n4, .accept, .left, .up, .accept, .n0, .n0, .n0 }, // 2->4 (<^A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // 2->5 (^A)
+        .{ .n4, .accept, .up, .right, .accept, .n0, .n0, .n0 }, // 2->6 (^>A)
+        .{ .n5, .accept, .left, .up, .up, .accept, .n0, .n0 }, // 2->7 (<^^A)
+        .{ .n4, .accept, .up, .up, .accept, .n0, .n0, .n0 }, // 2->8 (^^A)
+        .{ .n5, .accept, .up, .up, .right, .accept, .n0, .n0 }, // 2->9 (^^>A)
+        .{ .n4, .accept, .down, .right, .accept, .n0, .n0, .n0 }, // 2->accept (v>A)
+        undefined, // 2->left (unused)
+        undefined, // 2->up (unused)
+        undefined, // 2->down (unused)
+        undefined, // 2->right (unused)
     },
     .{
-        .{ .four, .accept, .left, .down, .accept, .zero, .zero, .zero }, // 3->0 (<vA)
-        .{ .four, .accept, .left, .left, .accept, .zero, .zero, .zero }, // 3->1 (<<A)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // 3->2 (<A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 3->3 (A)
-        .{ .five, .accept, .left, .left, .up, .accept, .zero, .zero }, // 3->4 (<<^A)
-        .{ .four, .accept, .left, .up, .accept, .zero, .zero, .zero }, // 3->5 (<^A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // 3->6 (^A)
-        .{ .six, .accept, .left, .left, .up, .up, .accept, .zero }, // 3->7 (<<^^A)
-        .{ .five, .accept, .left, .up, .up, .accept, .zero, .zero }, // 3->8 (<^^A)
-        .{ .four, .accept, .up, .up, .accept, .zero, .zero, .zero }, // 3->9 (^^A)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // 3->accept (vA)
-        .{.zero} ** 8, // 3->left (unused)
-        .{.zero} ** 8, // 3->up (unused)
-        .{.zero} ** 8, // 3->down (unused)
-        .{.zero} ** 8, // 3->right (unused)
+        .{ .n4, .accept, .left, .down, .accept, .n0, .n0, .n0 }, // 3->0 (<vA)
+        .{ .n4, .accept, .left, .left, .accept, .n0, .n0, .n0 }, // 3->1 (<<A)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // 3->2 (<A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 3->3 (A)
+        .{ .n5, .accept, .left, .left, .up, .accept, .n0, .n0 }, // 3->4 (<<^A)
+        .{ .n4, .accept, .left, .up, .accept, .n0, .n0, .n0 }, // 3->5 (<^A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // 3->6 (^A)
+        .{ .n6, .accept, .left, .left, .up, .up, .accept, .n0 }, // 3->7 (<<^^A)
+        .{ .n5, .accept, .left, .up, .up, .accept, .n0, .n0 }, // 3->8 (<^^A)
+        .{ .n4, .accept, .up, .up, .accept, .n0, .n0, .n0 }, // 3->9 (^^A)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // 3->accept (vA)
+        undefined, // 3->left (unused)
+        undefined, // 3->up (unused)
+        undefined, // 3->down (unused)
+        undefined, // 3->right (unused)
     },
     .{
-        .{ .five, .accept, .right, .down, .down, .accept, .zero, .zero }, // 4->0 (>vvA)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // 4->1 (vA)
-        .{ .four, .accept, .down, .right, .accept, .zero, .zero, .zero }, // 4->2 (v>A)
-        .{ .five, .accept, .down, .right, .right, .accept, .zero, .zero }, // 4->3 (v>>A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 4->4 (A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // 4->5 (>A)
-        .{ .four, .accept, .right, .right, .accept, .zero, .zero, .zero }, // 4->6 (>>A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // 4->7 (^A)
-        .{ .four, .accept, .up, .right, .accept, .zero, .zero, .zero }, // 4->8 (^>A)
-        .{ .five, .accept, .up, .right, .right, .accept, .zero, .zero }, // 4->9 (^>>A)
-        .{ .six, .accept, .right, .right, .down, .down, .accept, .zero }, // 4->accept (>>vvA)
-        .{.zero} ** 8, // 4->left (unused)
-        .{.zero} ** 8, // 4->up (unused)
-        .{.zero} ** 8, // 4->down (unused)
-        .{.zero} ** 8, // 4->right (unused)
+        .{ .n5, .accept, .right, .down, .down, .accept, .n0, .n0 }, // 4->0 (>vvA)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // 4->1 (vA)
+        .{ .n4, .accept, .down, .right, .accept, .n0, .n0, .n0 }, // 4->2 (v>A)
+        .{ .n5, .accept, .down, .right, .right, .accept, .n0, .n0 }, // 4->3 (v>>A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 4->4 (A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // 4->5 (>A)
+        .{ .n4, .accept, .right, .right, .accept, .n0, .n0, .n0 }, // 4->6 (>>A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // 4->7 (^A)
+        .{ .n4, .accept, .up, .right, .accept, .n0, .n0, .n0 }, // 4->8 (^>A)
+        .{ .n5, .accept, .up, .right, .right, .accept, .n0, .n0 }, // 4->9 (^>>A)
+        .{ .n6, .accept, .right, .right, .down, .down, .accept, .n0 }, // 4->accept (>>vvA)
+        undefined, // 4->left (unused)
+        undefined, // 4->up (unused)
+        undefined, // 4->down (unused)
+        undefined, // 4->right (unused)
     },
     .{
-        .{ .four, .accept, .down, .down, .accept, .zero, .zero, .zero }, // 5->0 (vvA)
-        .{ .four, .accept, .left, .down, .accept, .zero, .zero, .zero }, // 5->1 (<vA)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // 5->2 (vA)
-        .{ .four, .accept, .down, .right, .accept, .zero, .zero, .zero }, // 5->3 (v>A)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // 5->4 (<A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 5->5 (A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // 5->6 (>A)
-        .{ .four, .accept, .left, .up, .accept, .zero, .zero, .zero }, // 5->7 (<^A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // 5->8 (^A)
-        .{ .four, .accept, .up, .right, .accept, .zero, .zero, .zero }, // 5->9 (^>A)
-        .{ .five, .accept, .down, .down, .right, .accept, .zero, .zero }, // 5->accept (vv>A)
-        .{.zero} ** 8, // 5->left (unused)
-        .{.zero} ** 8, // 5->up (unused)
-        .{.zero} ** 8, // 5->down (unused)
-        .{.zero} ** 8, // 5->right (unused)
+        .{ .n4, .accept, .down, .down, .accept, .n0, .n0, .n0 }, // 5->0 (vvA)
+        .{ .n4, .accept, .left, .down, .accept, .n0, .n0, .n0 }, // 5->1 (<vA)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // 5->2 (vA)
+        .{ .n4, .accept, .down, .right, .accept, .n0, .n0, .n0 }, // 5->3 (v>A)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // 5->4 (<A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 5->5 (A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // 5->6 (>A)
+        .{ .n4, .accept, .left, .up, .accept, .n0, .n0, .n0 }, // 5->7 (<^A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // 5->8 (^A)
+        .{ .n4, .accept, .up, .right, .accept, .n0, .n0, .n0 }, // 5->9 (^>A)
+        .{ .n5, .accept, .down, .down, .right, .accept, .n0, .n0 }, // 5->accept (vv>A)
+        undefined, // 5->left (unused)
+        undefined, // 5->up (unused)
+        undefined, // 5->down (unused)
+        undefined, // 5->right (unused)
     },
     .{
-        .{ .five, .accept, .left, .down, .down, .accept, .zero, .zero }, // 6->0 (<vvA)
-        .{ .five, .accept, .left, .left, .down, .accept, .zero, .zero }, // 6->1 (<<vA)
-        .{ .four, .accept, .left, .down, .accept, .zero, .zero, .zero }, // 6->2 (<vA)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // 6->3 (vA)
-        .{ .four, .accept, .left, .left, .accept, .zero, .zero, .zero }, // 6->4 (<<A)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // 6->5 (<A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 6->6 (A)
-        .{ .five, .accept, .left, .left, .up, .accept, .zero, .zero }, // 6->7 (<<^A)
-        .{ .four, .accept, .left, .up, .accept, .zero, .zero, .zero }, // 6->8 (<^A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // 6->9 (^A)
-        .{ .four, .accept, .down, .down, .accept, .zero, .zero, .zero }, // 6->accept (vvA)
-        .{.zero} ** 8, // 6->left (unused)
-        .{.zero} ** 8, // 6->up (unused)
-        .{.zero} ** 8, // 6->down (unused)
-        .{.zero} ** 8, // 6->right (unused)
+        .{ .n5, .accept, .left, .down, .down, .accept, .n0, .n0 }, // 6->0 (<vvA)
+        .{ .n5, .accept, .left, .left, .down, .accept, .n0, .n0 }, // 6->1 (<<vA)
+        .{ .n4, .accept, .left, .down, .accept, .n0, .n0, .n0 }, // 6->2 (<vA)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // 6->3 (vA)
+        .{ .n4, .accept, .left, .left, .accept, .n0, .n0, .n0 }, // 6->4 (<<A)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // 6->5 (<A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 6->6 (A)
+        .{ .n5, .accept, .left, .left, .up, .accept, .n0, .n0 }, // 6->7 (<<^A)
+        .{ .n4, .accept, .left, .up, .accept, .n0, .n0, .n0 }, // 6->8 (<^A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // 6->9 (^A)
+        .{ .n4, .accept, .down, .down, .accept, .n0, .n0, .n0 }, // 6->accept (vvA)
+        undefined, // 6->left (unused)
+        undefined, // 6->up (unused)
+        undefined, // 6->down (unused)
+        undefined, // 6->right (unused)
     },
     .{
-        .{ .six, .accept, .right, .down, .down, .down, .accept, .zero }, // 7->0 (>vvvA)
-        .{ .four, .accept, .down, .down, .accept, .zero, .zero, .zero }, // 7->1 (vvA)
-        .{ .five, .accept, .down, .down, .right, .accept, .zero, .zero }, // 7->2 (vv>A)
-        .{ .six, .accept, .down, .down, .right, .right, .accept, .zero }, // 7->3 (vv>>A)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // 7->4 (vA)
-        .{ .four, .accept, .down, .right, .accept, .zero, .zero, .zero }, // 7->5 (v>A)
-        .{ .five, .accept, .down, .right, .right, .accept, .zero, .zero }, // 7->6 (v>>A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 7->7 (A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // 7->8 (>A)
-        .{ .four, .accept, .right, .right, .accept, .zero, .zero, .zero }, // 7->9 (>>A)
-        .{ .seven, .accept, .right, .right, .down, .down, .down, .accept }, // 7->accept (>>vvvA)
-        .{.zero} ** 8, // 7->left (unused)
-        .{.zero} ** 8, // 7->up (unused)
-        .{.zero} ** 8, // 7->down (unused)
-        .{.zero} ** 8, // 7->right (unused)
+        .{ .n6, .accept, .right, .down, .down, .down, .accept, .n0 }, // 7->0 (>vvvA)
+        .{ .n4, .accept, .down, .down, .accept, .n0, .n0, .n0 }, // 7->1 (vvA)
+        .{ .n5, .accept, .down, .down, .right, .accept, .n0, .n0 }, // 7->2 (vv>A)
+        .{ .n6, .accept, .down, .down, .right, .right, .accept, .n0 }, // 7->3 (vv>>A)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // 7->4 (vA)
+        .{ .n4, .accept, .down, .right, .accept, .n0, .n0, .n0 }, // 7->5 (v>A)
+        .{ .n5, .accept, .down, .right, .right, .accept, .n0, .n0 }, // 7->6 (v>>A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 7->7 (A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // 7->8 (>A)
+        .{ .n4, .accept, .right, .right, .accept, .n0, .n0, .n0 }, // 7->9 (>>A)
+        .{ .n7, .accept, .right, .right, .down, .down, .down, .accept }, // 7->accept (>>vvvA)
+        undefined, // 7->left (unused)
+        undefined, // 7->up (unused)
+        undefined, // 7->down (unused)
+        undefined, // 7->right (unused)
     },
     .{
-        .{ .five, .accept, .down, .down, .down, .accept, .zero, .zero }, // 8->0 (vvvA)
-        .{ .five, .accept, .left, .down, .down, .accept, .zero, .zero }, // 8->1 (<vvA)
-        .{ .four, .accept, .down, .down, .accept, .zero, .zero, .zero }, // 8->2 (vvA)
-        .{ .five, .accept, .down, .down, .right, .accept, .zero, .zero }, // 8->3 (vv>A)
-        .{ .four, .accept, .left, .down, .accept, .zero, .zero, .zero }, // 8->4 (<vA)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // 8->5 (vA)
-        .{ .four, .accept, .down, .right, .accept, .zero, .zero, .zero }, // 8->6 (v>A)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // 8->7 (<A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 8->8 (A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // 8->9 (>A)
-        .{ .six, .accept, .down, .down, .down, .right, .accept, .zero }, // 8->accept (vvv>A)
-        .{.zero} ** 8, // 8->left (unused)
-        .{.zero} ** 8, // 8->up (unused)
-        .{.zero} ** 8, // 8->down (unused)
-        .{.zero} ** 8, // 8->right (unused)
+        .{ .n5, .accept, .down, .down, .down, .accept, .n0, .n0 }, // 8->0 (vvvA)
+        .{ .n5, .accept, .left, .down, .down, .accept, .n0, .n0 }, // 8->1 (<vvA)
+        .{ .n4, .accept, .down, .down, .accept, .n0, .n0, .n0 }, // 8->2 (vvA)
+        .{ .n5, .accept, .down, .down, .right, .accept, .n0, .n0 }, // 8->3 (vv>A)
+        .{ .n4, .accept, .left, .down, .accept, .n0, .n0, .n0 }, // 8->4 (<vA)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // 8->5 (vA)
+        .{ .n4, .accept, .down, .right, .accept, .n0, .n0, .n0 }, // 8->6 (v>A)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // 8->7 (<A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 8->8 (A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // 8->9 (>A)
+        .{ .n6, .accept, .down, .down, .down, .right, .accept, .n0 }, // 8->accept (vvv>A)
+        undefined, // 8->left (unused)
+        undefined, // 8->up (unused)
+        undefined, // 8->down (unused)
+        undefined, // 8->right (unused)
     },
     .{
-        .{ .six, .accept, .left, .down, .down, .down, .accept, .zero }, // 9->0 (<vvvA)
-        .{ .six, .accept, .left, .left, .down, .down, .accept, .zero }, // 9->1 (<<vvA)
-        .{ .five, .accept, .left, .down, .down, .accept, .zero, .zero }, // 9->2 (<vvA)
-        .{ .four, .accept, .down, .down, .accept, .zero, .zero, .zero }, // 9->3 (vvA)
-        .{ .five, .accept, .left, .left, .down, .accept, .zero, .zero }, // 9->4 (<<vA)
-        .{ .four, .accept, .left, .down, .accept, .zero, .zero, .zero }, // 9->5 (<vA)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // 9->6 (vA)
-        .{ .four, .accept, .left, .left, .accept, .zero, .zero, .zero }, // 9->7 (<<A)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // 9->8 (<A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // 9->9 (A)
-        .{ .five, .accept, .down, .down, .down, .accept, .zero, .zero }, // 9->accept (vvvA)
-        .{.zero} ** 8, // 9->left (unused)
-        .{.zero} ** 8, // 9->up (unused)
-        .{.zero} ** 8, // 9->down (unused)
-        .{.zero} ** 8, // 9->right (unused)
+        .{ .n6, .accept, .left, .down, .down, .down, .accept, .n0 }, // 9->0 (<vvvA)
+        .{ .n6, .accept, .left, .left, .down, .down, .accept, .n0 }, // 9->1 (<<vvA)
+        .{ .n5, .accept, .left, .down, .down, .accept, .n0, .n0 }, // 9->2 (<vvA)
+        .{ .n4, .accept, .down, .down, .accept, .n0, .n0, .n0 }, // 9->3 (vvA)
+        .{ .n5, .accept, .left, .left, .down, .accept, .n0, .n0 }, // 9->4 (<<vA)
+        .{ .n4, .accept, .left, .down, .accept, .n0, .n0, .n0 }, // 9->5 (<vA)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // 9->6 (vA)
+        .{ .n4, .accept, .left, .left, .accept, .n0, .n0, .n0 }, // 9->7 (<<A)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // 9->8 (<A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // 9->9 (A)
+        .{ .n5, .accept, .down, .down, .down, .accept, .n0, .n0 }, // 9->accept (vvvA)
+        undefined, // 9->left (unused)
+        undefined, // 9->up (unused)
+        undefined, // 9->down (unused)
+        undefined, // 9->right (unused)
     },
     .{
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // accept->0 (<A)
-        .{ .five, .accept, .up, .left, .left, .accept, .zero, .zero }, // accept->1 (^<<A)
-        .{ .four, .accept, .left, .up, .accept, .zero, .zero, .zero }, // accept->2 (<^A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // accept->3 (^A)
-        .{ .six, .accept, .up, .up, .left, .left, .accept, .zero }, // accept->4 (^^<<A)
-        .{ .five, .accept, .left, .up, .up, .accept, .zero, .zero }, // accept->5 (<^^A)
-        .{ .four, .accept, .up, .up, .accept, .zero, .zero, .zero }, // accept->6 (^^A)
-        .{ .seven, .accept, .up, .up, .up, .left, .left, .accept }, // accept->7 (^^^<<A)
-        .{ .six, .accept, .left, .up, .up, .up, .accept, .zero }, // accept->8 (<^^^A)
-        .{ .five, .accept, .up, .up, .up, .accept, .zero, .zero }, // accept->9 (^^^A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // accept->accept (A)
-        .{ .five, .accept, .down, .left, .left, .accept, .zero, .zero }, // accept->left (v<<A)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // accept->up (<A)
-        .{ .four, .accept, .left, .down, .accept, .zero, .zero, .zero }, // accept->down (<vA)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // accept->right (vA)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // accept->0 (<A)
+        .{ .n5, .accept, .up, .left, .left, .accept, .n0, .n0 }, // accept->1 (^<<A)
+        .{ .n4, .accept, .left, .up, .accept, .n0, .n0, .n0 }, // accept->2 (<^A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // accept->3 (^A)
+        .{ .n6, .accept, .up, .up, .left, .left, .accept, .n0 }, // accept->4 (^^<<A)
+        .{ .n5, .accept, .left, .up, .up, .accept, .n0, .n0 }, // accept->5 (<^^A)
+        .{ .n4, .accept, .up, .up, .accept, .n0, .n0, .n0 }, // accept->6 (^^A)
+        .{ .n7, .accept, .up, .up, .up, .left, .left, .accept }, // accept->7 (^^^<<A)
+        .{ .n6, .accept, .left, .up, .up, .up, .accept, .n0 }, // accept->8 (<^^^A)
+        .{ .n5, .accept, .up, .up, .up, .accept, .n0, .n0 }, // accept->9 (^^^A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // accept->accept (A)
+        .{ .n5, .accept, .down, .left, .left, .accept, .n0, .n0 }, // accept->left (v<<A)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // accept->up (<A)
+        .{ .n4, .accept, .left, .down, .accept, .n0, .n0, .n0 }, // accept->down (<vA)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // accept->right (vA)
     },
     .{
-        .{.zero} ** 8, // left->0 (unused)
-        .{.zero} ** 8, // left->1 (unused)
-        .{.zero} ** 8, // left->2 (unused)
-        .{.zero} ** 8, // left->3 (unused)
-        .{.zero} ** 8, // left->4 (unused)
-        .{.zero} ** 8, // left->5 (unused)
-        .{.zero} ** 8, // left->6 (unused)
-        .{.zero} ** 8, // left->7 (unused)
-        .{.zero} ** 8, // left->8 (unused)
-        .{.zero} ** 8, // left->9 (unused)
-        .{ .five, .accept, .right, .right, .up, .accept, .zero, .zero }, // left->accept (>>^A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // left->left (A)
-        .{ .four, .accept, .right, .up, .accept, .zero, .zero, .zero }, // left->up (>^A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // left->down (>A)
-        .{ .four, .accept, .right, .right, .accept, .zero, .zero, .zero }, // left->right (>>A)
+        undefined, // left->0 (unused)
+        undefined, // left->1 (unused)
+        undefined, // left->2 (unused)
+        undefined, // left->3 (unused)
+        undefined, // left->4 (unused)
+        undefined, // left->5 (unused)
+        undefined, // left->6 (unused)
+        undefined, // left->7 (unused)
+        undefined, // left->8 (unused)
+        undefined, // left->9 (unused)
+        .{ .n5, .accept, .right, .right, .up, .accept, .n0, .n0 }, // left->accept (>>^A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // left->left (A)
+        .{ .n4, .accept, .right, .up, .accept, .n0, .n0, .n0 }, // left->up (>^A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // left->down (>A)
+        .{ .n4, .accept, .right, .right, .accept, .n0, .n0, .n0 }, // left->right (>>A)
     },
     .{
-        .{.zero} ** 8, // up->0 (unused)
-        .{.zero} ** 8, // up->1 (unused)
-        .{.zero} ** 8, // up->2 (unused)
-        .{.zero} ** 8, // up->3 (unused)
-        .{.zero} ** 8, // up->4 (unused)
-        .{.zero} ** 8, // up->5 (unused)
-        .{.zero} ** 8, // up->6 (unused)
-        .{.zero} ** 8, // up->7 (unused)
-        .{.zero} ** 8, // up->8 (unused)
-        .{.zero} ** 8, // up->9 (unused)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // up->accept (>A)
-        .{ .four, .accept, .down, .left, .accept, .zero, .zero, .zero }, // up->left (v<A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // up->up (A)
-        .{ .three, .accept, .down, .accept, .zero, .zero, .zero, .zero }, // up->down (vA)
-        .{ .four, .accept, .down, .right, .accept, .zero, .zero, .zero }, // up->right (v>A)
+        undefined, // up->0 (unused)
+        undefined, // up->1 (unused)
+        undefined, // up->2 (unused)
+        undefined, // up->3 (unused)
+        undefined, // up->4 (unused)
+        undefined, // up->5 (unused)
+        undefined, // up->6 (unused)
+        undefined, // up->7 (unused)
+        undefined, // up->8 (unused)
+        undefined, // up->9 (unused)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // up->accept (>A)
+        .{ .n4, .accept, .down, .left, .accept, .n0, .n0, .n0 }, // up->left (v<A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // up->up (A)
+        .{ .n3, .accept, .down, .accept, .n0, .n0, .n0, .n0 }, // up->down (vA)
+        .{ .n4, .accept, .down, .right, .accept, .n0, .n0, .n0 }, // up->right (v>A)
     },
     .{
-        .{.zero} ** 8, // down->0 (unused)
-        .{.zero} ** 8, // down->1 (unused)
-        .{.zero} ** 8, // down->2 (unused)
-        .{.zero} ** 8, // down->3 (unused)
-        .{.zero} ** 8, // down->4 (unused)
-        .{.zero} ** 8, // down->5 (unused)
-        .{.zero} ** 8, // down->6 (unused)
-        .{.zero} ** 8, // down->7 (unused)
-        .{.zero} ** 8, // down->8 (unused)
-        .{.zero} ** 8, // down->9 (unused)
-        .{ .four, .accept, .up, .right, .accept, .zero, .zero, .zero }, // down->accept (^>A)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // down->left (<A)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // down->up (^A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // down->down (A)
-        .{ .three, .accept, .right, .accept, .zero, .zero, .zero, .zero }, // down->right (>A)
+        undefined, // down->0 (unused)
+        undefined, // down->1 (unused)
+        undefined, // down->2 (unused)
+        undefined, // down->3 (unused)
+        undefined, // down->4 (unused)
+        undefined, // down->5 (unused)
+        undefined, // down->6 (unused)
+        undefined, // down->7 (unused)
+        undefined, // down->8 (unused)
+        undefined, // down->9 (unused)
+        .{ .n4, .accept, .up, .right, .accept, .n0, .n0, .n0 }, // down->accept (^>A)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // down->left (<A)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // down->up (^A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // down->down (A)
+        .{ .n3, .accept, .right, .accept, .n0, .n0, .n0, .n0 }, // down->right (>A)
     },
     .{
-        .{.zero} ** 8, // right->0 (unused)
-        .{.zero} ** 8, // right->1 (unused)
-        .{.zero} ** 8, // right->2 (unused)
-        .{.zero} ** 8, // right->3 (unused)
-        .{.zero} ** 8, // right->4 (unused)
-        .{.zero} ** 8, // right->5 (unused)
-        .{.zero} ** 8, // right->6 (unused)
-        .{.zero} ** 8, // right->7 (unused)
-        .{.zero} ** 8, // right->8 (unused)
-        .{.zero} ** 8, // right->9 (unused)
-        .{ .three, .accept, .up, .accept, .zero, .zero, .zero, .zero }, // right->accept (^A)
-        .{ .four, .accept, .left, .left, .accept, .zero, .zero, .zero }, // right->left (<<A)
-        .{ .four, .accept, .left, .up, .accept, .zero, .zero, .zero }, // right->up (<^A)
-        .{ .three, .accept, .left, .accept, .zero, .zero, .zero, .zero }, // right->down (<A)
-        .{ .two, .accept, .accept, .zero, .zero, .zero, .zero, .zero }, // right->right (A)
+        undefined, // right->0 (unused)
+        undefined, // right->1 (unused)
+        undefined, // right->2 (unused)
+        undefined, // right->3 (unused)
+        undefined, // right->4 (unused)
+        undefined, // right->5 (unused)
+        undefined, // right->6 (unused)
+        undefined, // right->7 (unused)
+        undefined, // right->8 (unused)
+        undefined, // right->9 (unused)
+        .{ .n3, .accept, .up, .accept, .n0, .n0, .n0, .n0 }, // right->accept (^A)
+        .{ .n4, .accept, .left, .left, .accept, .n0, .n0, .n0 }, // right->left (<<A)
+        .{ .n4, .accept, .left, .up, .accept, .n0, .n0, .n0 }, // right->up (<^A)
+        .{ .n3, .accept, .left, .accept, .n0, .n0, .n0, .n0 }, // right->down (<A)
+        .{ .n2, .accept, .accept, .n0, .n0, .n0, .n0, .n0 }, // right->right (A)
     },
 };

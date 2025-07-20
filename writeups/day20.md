@@ -90,7 +90,7 @@ When we activate a cheat, the possible end tiles are only those within a Manhatt
 
 Here's an example to visualise the window for the starting position $i,j$:
 
-```
+```plaintext
 ┌─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
 │ ······· │ ······· │ ....... │  i-3,j  │ ······· │ ....... │ ....... │
 ├─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
