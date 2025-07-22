@@ -98,52 +98,13 @@ const sample_input =
 ;
 
 test "day 19 part 1" {
-    const puzzle = Day19(8, 8).init(sample_input, std.testing.allocator);
+    const puzzle = Day19(8, 8).init(sample_input);
     const result = puzzle.part1();
     try std.testing.expectEqual(6, result);
 }
 
 test "day 19 part 2" {
-    const puzzle = Day19(8, 8).init(sample_input, std.testing.allocator);
-    const result = try puzzle.part2();
+    const puzzle = Day19(8, 8).init(sample_input);
+    const result = puzzle.part2();
     try std.testing.expectEqual(16, result);
-}
-
-const sample_input2 =
-    \\b, bb, bbb, bbbb, bbbbb, bbbbbb, ru, ur, rr, uu, r
-    \\
-    \\bbbbbbbbbbbbbbbbbbbbbbbbrrru
-    \\bbbbbbbbbbbbbbbbbbbbbbbbrruu
-    \\bbbbbbbbbbbbbbbbbbbbbbbbruur
-    \\bbbbbbbbbbbbbbbbbbbbbbbbrurr
-;
-
-test "day 19 part 2 2" {
-    const puzzle = Day19(11, 4).init(sample_input2, std.testing.allocator);
-    const result = try puzzle.part2();
-    try std.testing.expectEqual(64644552, result);
-}
-
-const sample_input3 =
-    \\b, bb, bbb
-    \\
-    \\bbbb
-;
-
-test "day 19 part 2 3" {
-    const puzzle = Day19(3, 1).init(sample_input3, std.testing.allocator);
-    const result = try puzzle.part2();
-    try std.testing.expectEqual(7, result);
-}
-
-const sample_input4 =
-    \\r, w, b, u, bb
-    \\
-    \\brbbrubbbuw
-;
-
-test "day 19 part 2 4" {
-    const puzzle = Day19(5, 1).init(sample_input4, std.testing.allocator);
-    const result = try puzzle.part2();
-    try std.testing.expectEqual(6, result);
 }

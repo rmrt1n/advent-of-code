@@ -23,9 +23,7 @@ fn Day25() type {
                 var heights: [5]u8 = .{0} ** 5;
                 for (0..5) |_| {
                     for (inner_lexer.next().?, 0..) |pin, i| {
-                        if (pin == '#') {
-                            heights[i] += 1;
-                        }
+                        heights[i] += @intFromBool(pin == '#');
                     }
                 }
                 try list.append(heights);
@@ -45,7 +43,7 @@ fn Day25() type {
                 for (self.keys.items) |key| {
                     const fitted = lock + key > @as(@Vector(5, u8), @splat(5));
                     const is_overlap = @reduce(.Or, fitted);
-                    if (!is_overlap) result += 1;
+                    result += @intFromBool(!is_overlap);
                 }
             }
             return result;
@@ -125,11 +123,6 @@ const sample_input =
 test "day 25 part 1 sample 1" {
     const puzzle = try Day25().init(sample_input, std.testing.allocator);
     defer puzzle.deinit();
-
-    // for (puzzle.locks.items) |lock| std.debug.print("{any}\n", .{lock});
-    // for (puzzle.keys.items) |key| std.debug.print("{any}\n", .{key});
-
-    // std.debug.print("{any}\n", .{puzzle});
     const result = puzzle.part1();
     try std.testing.expectEqual(3, result);
 }

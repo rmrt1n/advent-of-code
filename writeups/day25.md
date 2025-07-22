@@ -2,19 +2,13 @@
 
 [Full solution](../src/days/day25.zig).
 
-## Part one
+## Puzzle Input
 
-Finally we have reached the last day. An easy puzzle to end the event! Here's what the input looks like:
+Finally we have reached the last day. A relatively easy puzzle to end the event!
 
-```
-#####
-.####
-.####
-.####
-.#.#.
-.#...
-.....
+Today's input is a list of **locks** and **keys**:
 
+```plaintext
 #####
 ##.##
 .#.##
@@ -32,10 +26,8 @@ Finally we have reached the last day. An easy puzzle to end the event! Here's wh
 #####
 ```
 
-It's a list of locks and keys. Locks are the ones that have the top row filled with `#` and keys are the ones with the bottom rows filled. A lock and a key fit together if none of their pins overlap.
-
-For part one, we have to count the number of unique lock and key combination that fit together. First, let's parse the input:
-
+ Locks have their top row filled with `#` while keys have their bottom rows filled. We'll parse these into two arrays, one for the locks and one for the keys:
+ 
 ```zig
 fn Day25() type {
     return struct {
@@ -60,9 +52,7 @@ fn Day25() type {
                 var heights: [5]u8 = .{0} ** 5;
                 for (0..5) |_| {
                     for (inner_lexer.next().?, 0..) |pin, i| {
-                        if (pin == '#') {
-                            heights[i] += 1;
-                        }
+                        heights[i] += @intFromBool(pin == '#');
                     }
                 }
                 try list.append(heights);
@@ -70,13 +60,22 @@ fn Day25() type {
 
             return result;
         }
+
+        fn deinit(self: Self) void {
+            self.locks.deinit();
+            self.keys.deinit();
+        }
     };
 }
 ```
 
-We'll represent locks and keys as vectors of length five (one index for each pin height). These are then stored in a `std.ArrayList`.
+We use the same representation for both locks and keys: a 5-length vector where each element represents the height of each pin in the lock or key.
 
-The solution for part one is pretty straightforward. For every lock and key combination, we just have to check if they fit together. If they fit, increment the result counter. Here's the code:
+## Part One
+
+We need to count the number of **unique lock/key pair that fits together** without any pin overlap. Two pins overlap when their combined height is greater than the maximum pin height (which is 5).
+
+The solution is pretty straightforward. For each lock and key pair, check if any of the pins overlap. If not, increment the result. This day is a great showcase of Zig's SIMD capabilities:
 
 ```zig
 fn part1(self: Self) u64 {
@@ -85,17 +84,28 @@ fn part1(self: Self) u64 {
         for (self.keys.items) |key| {
             const fitted = lock + key > @as(@Vector(5, u8), @splat(5));
             const is_overlap = @reduce(.Or, fitted);
-            if (!is_overlap) result += 1;
+            result += @intFromBool(!is_overlap);
         }
     }
     return result;
 }
 ```
 
-For each key and lock combination, we add up the heights of the key pins and the lock pins. If any of the resulting heights are greater than five (the maximum height of a pin), it means we have an overlap. Today is a really great showcase of SIMD instructions in Zig! 
 
-## Part two
+## Part Two
 
-Thank you for reading this far and congratulations for completing Advent of Code 2024!
+Thank you for reading this far and congratulations on completing Advent of Code 2024!
 
-## Benchmarks
+```zig
+fn part2(_: Self) u64 {
+    return 50;
+}
+```
+
+## Benchmark
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |
