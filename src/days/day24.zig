@@ -1,44 +1,24 @@
 const std = @import("std");
-
-const Gate = enum {
-    band,
-    bor,
-    bxor,
-
-    fn from_string(gate_string: []const u8) Gate {
-        if (std.mem.eql(u8, gate_string, "AND")) return .band;
-        if (std.mem.eql(u8, gate_string, "OR")) return .bor;
-        if (std.mem.eql(u8, gate_string, "XOR")) return .bxor;
-        unreachable;
-    }
-
-    fn compute(gate: Gate, x: bool, y: bool) bool {
-        return switch (gate) {
-            .band => x and y,
-            .bor => x or y,
-            .bxor => x != y,
-        };
-    }
-};
+const builtin = @import("builtin");
 
 fn Day24(length: usize) type {
     return struct {
         const Self = @This();
 
-        wires: std.AutoHashMap(u24, bool) = undefined,
-        expressions: [length][3]u24 = undefined,
+        wires: std.AutoHashMap(Wire, bool) = undefined,
+        expressions: [length][3]Wire = undefined,
         gates: [length]Gate = undefined,
         allocator: std.mem.Allocator,
 
         fn init(data: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
 
-            result.wires = std.AutoHashMap(u24, bool).init(allocator);
+            result.wires = std.AutoHashMap(Wire, bool).init(allocator);
 
             var lexer = std.mem.splitScalar(u8, data, '\n');
             while (lexer.next()) |line| {
                 if (line.len == 0) break;
-                try result.wires.put(wire_to_u24(line[0..3]), line[5] == '1');
+                try result.wires.put(Wire.init(line[0..3]), line[5] == '1');
             }
 
             var i: usize = 0;
@@ -47,13 +27,13 @@ fn Day24(length: usize) type {
 
                 var inner_lexer = std.mem.tokenizeScalar(u8, line, ' ');
 
-                result.expressions[i][0] = wire_to_u24(inner_lexer.next().?);
-                result.gates[i] = Gate.from_string(inner_lexer.next().?);
-                result.expressions[i][1] = wire_to_u24(inner_lexer.next().?);
+                result.expressions[i][0] = Wire.init(inner_lexer.next().?);
+                result.gates[i] = Gate.init(inner_lexer.next().?);
+                result.expressions[i][1] = Wire.init(inner_lexer.next().?);
 
                 _ = inner_lexer.next();
 
-                result.expressions[i][2] = wire_to_u24(inner_lexer.next().?);
+                result.expressions[i][2] = Wire.init(inner_lexer.next().?);
             }
 
             return result;
@@ -66,7 +46,7 @@ fn Day24(length: usize) type {
         fn part1(self: *Self) !u64 {
             var z_count: usize = 0;
             for (self.expressions) |expression| {
-                if (expression[2] >> 16 == 'z') z_count += 1;
+                if (expression[2].c0 == 'z') z_count += 1;
             }
 
             var result: u64 = 0;
@@ -80,11 +60,9 @@ fn Day24(length: usize) type {
                     const value_second = self.wires.get(right) orelse continue;
                     const computed = gate.compute(value_first, value_second);
 
-                    if (output >> 16 == 'z') {
-                        const index = ((output >> 8) - '0') * 10 + ((output & 0xff) - '0');
-                        const bit: u64 = if (computed) 1 else 0;
-
-                        result |= bit << @intCast(index);
+                    if (output.c0 == 'z') {
+                        const index = (output.c1 - '0') * 10 + (output.c2 - '0');
+                        result |= @as(u64, @intFromBool(computed)) << @intCast(index);
                         z_count -= 1;
                     }
 
@@ -99,14 +77,14 @@ fn Day24(length: usize) type {
             defer wire_gates.deinit();
 
             for (self.expressions, self.gates) |expression, gate| {
-                try wire_gates.put(.{ expression[0], @intFromEnum(gate) }, {});
-                try wire_gates.put(.{ expression[1], @intFromEnum(gate) }, {});
+                try wire_gates.put(.{ @bitCast(expression[0]), @intFromEnum(gate) }, {});
+                try wire_gates.put(.{ @bitCast(expression[1]), @intFromEnum(gate) }, {});
             }
 
-            var result: [8]u24 = undefined;
-            const x00 = 0x783030;
-            const z45 = 0x7a3435;
+            const x00 = Wire.init("x00");
+            const z45 = Wire.init("z45");
 
+            var result: [8]u24 = undefined;
             var i: usize = 0;
             for (self.expressions, self.gates) |expression, gate| {
                 const left, const right, const output = expression;
@@ -114,31 +92,31 @@ fn Day24(length: usize) type {
                 switch (gate) {
                     .band => {
                         if (left != x00 and right != x00 and
-                            !wire_gates.contains(.{ output, @intFromEnum(Gate.bor) }))
+                            !wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bor) }))
                         {
-                            result[i] = output;
+                            result[i] = output.to_big_endian_u24();
                             i += 1;
                         }
                     },
                     .bor => {
-                        if (output >> 16 == 'z' and output != z45 or
-                            wire_gates.contains(.{ output, @intFromEnum(Gate.bor) }))
+                        if (output.c0 == 'z' and output != z45 or
+                            wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bor) }))
                         {
-                            result[i] = output;
+                            result[i] = output.to_big_endian_u24();
                             i += 1;
                         }
                     },
                     .bxor => {
-                        if (left >> 16 == 'x' or right >> 16 == 'x') {
+                        if (left.c0 == 'x' or right.c0 == 'x') {
                             if (left != x00 and right != x00 and
-                                !wire_gates.contains(.{ output, @intFromEnum(Gate.bxor) }))
+                                !wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bxor) }))
                             {
-                                result[i] = output;
+                                result[i] = output.to_big_endian_u24();
                                 i += 1;
                             }
                         } else {
-                            if (output >> 16 != 'z') {
-                                result[i] = output;
+                            if (output.c0 != 'z') {
+                                result[i] = output.to_big_endian_u24();
                                 i += 1;
                             }
                         }
@@ -149,12 +127,46 @@ fn Day24(length: usize) type {
             std.mem.sort(u24, &result, {}, std.sort.asc(u24));
             return result;
         }
-
-        fn wire_to_u24(wire: []const u8) u24 {
-            return (@as(u24, wire[0]) << 16) + (@as(u16, wire[1]) << 8) + wire[2];
-        }
     };
 }
+
+const Wire = packed struct(u24) {
+    const endian = builtin.target.cpu.arch.endian();
+
+    c0: u8,
+    c1: u8,
+    c2: u8,
+
+    fn init(wire: []const u8) Wire {
+        return Wire{ .c0 = wire[0], .c1 = wire[1], .c2 = wire[2] };
+    }
+
+    fn to_big_endian_u24(wire: Wire) u24 {
+        if (endian == .big) return @bitCast(wire);
+        return (@as(u24, wire.c0) << 16) + (@as(u16, wire.c1) << 8) + wire.c2;
+    }
+};
+
+const Gate = enum {
+    band,
+    bor,
+    bxor,
+
+    fn init(gate_string: []const u8) Gate {
+        if (std.mem.eql(u8, gate_string, "AND")) return .band;
+        if (std.mem.eql(u8, gate_string, "OR")) return .bor;
+        if (std.mem.eql(u8, gate_string, "XOR")) return .bxor;
+        unreachable;
+    }
+
+    fn compute(gate: Gate, x: bool, y: bool) bool {
+        return switch (gate) {
+            .band => x and y,
+            .bor => x or y,
+            .bxor => x != y,
+        };
+    }
+};
 
 pub const title = "Day 24: Crossed Wires";
 

@@ -1,55 +1,47 @@
-# Day 24:
+# Day 24: Crossed Wires
 
 [Full solution](../src/days/day24.zig).
 
-## Part one
+## Puzzle Input
 
-In day 24 we're given a list of wires and bitwise expressions:
+Today's input is a list of **wires** and **bitwise expressions**:
 
-```
+```plaintext
 x00: 1
-x01: 0
+x01: 1
 x02: 1
-x03: 1
-x04: 0
-y00: 1
+y00: 0
 y01: 1
-y02: 1
-y03: 1
-y04: 1
+y02: 0
 
-ntg XOR fgs -> mjb
-y02 OR x01 -> tnw
-kwq OR kpj -> z05
-x00 OR x03 -> fst
-tgd XOR rvg -> z01
-vdt OR tnw -> bfw
-bfw AND frj -> z10
+x00 AND y00 -> z00
+x01 XOR y01 -> z01
+x02 OR y02 -> z02
 ```
 
-The first section of the input lists all of the starting wires (`xXX`and `yXX`) and their values. The second part lists the bitwise expressions using the wires. There can be intermediary wires, e.g. `mjb`, `tnw`, etc.
+The first section lists the starting wires (`xNN`and `yNN`) and their initial values. The second part lists the bitwise expressions that uses these wires. There can be intermediary wires, e.g. `mjb`, `tnw`, etc.
 
-For part one, we have to simulate the expressions to get a resulting number. This number is represented by the bits stored in the wires `zXX`. First, we'll parse the input:
+We'll parse the wires into a hash map `std.AutoHashMap` and store the expressions in two separate arrays: one for the wire operands and results, and the other for the gate operators. We split them just because they're types are different:
 
 ```zig
 fn Day24(length: usize) type {
     return struct {
         const Self = @This();
 
-        wires: std.AutoHashMap(u24, bool) = undefined,
-        expressions: [length][3]u24 = undefined,
+        wires: std.AutoHashMap(Wire, bool) = undefined,
+        expressions: [length][3]Wire = undefined,
         gates: [length]Gate = undefined,
         allocator: std.mem.Allocator,
 
         fn init(data: []const u8, allocator: std.mem.Allocator) !Self {
             var result = Self{ .allocator = allocator };
 
-            result.wires = std.AutoHashMap(u24, bool).init(allocator);
+            result.wires = std.AutoHashMap(Wire, bool).init(allocator);
 
             var lexer = std.mem.splitScalar(u8, data, '\n');
             while (lexer.next()) |line| {
                 if (line.len == 0) break;
-                try result.wires.put(wire_to_u24(line[0..3]), line[5] == '1');
+                try result.wires.put(Wire.init(line[0..3]), line[5] == '1');
             }
 
             var i: usize = 0;
@@ -58,67 +50,67 @@ fn Day24(length: usize) type {
 
                 var inner_lexer = std.mem.tokenizeScalar(u8, line, ' ');
 
-                result.expressions[i][0] = wire_to_u24(inner_lexer.next().?);
-                result.gates[i] = Gate.from_string(inner_lexer.next().?);
-                result.expressions[i][1] = wire_to_u24(inner_lexer.next().?);
+                result.expressions[i][0] = Wire.init(inner_lexer.next().?);
+                result.gates[i] = Gate.init(inner_lexer.next().?);
+                result.expressions[i][1] = Wire.init(inner_lexer.next().?);
 
                 _ = inner_lexer.next();
 
-                result.expressions[i][2] = wire_to_u24(inner_lexer.next().?);
+                result.expressions[i][2] = Wire.init(inner_lexer.next().?);
             }
 
             return result;
+        }
+
+        fn deinit(self: *Self) void {
+            self.wires.deinit();
         }
     };
 }
 ```
 
-Here I stored the initial wires in a `std.AutoHashMap` because we're going to store the intermediary wires here too. It's dynamically size because we don't know how many intermediary wires we'll have. The operand and output wires are stored together in `expresssions` and the gates are stored in a parallel array `gates` with the same length. 
+Wires are represented as a packed struct where each character stored in its own field. This type has the same size as a 24-bit integer `u24` and in some cases can be used interchangeably:
 
-The gates are stored as enums with some helper functions for parsing and evaluating expressions:
+```zig
+const Wire = packed struct(u24) {
+    c0: u8,
+    c1: u8,
+    c2: u8,
+
+    fn init(wire: []const u8) Wire {
+        return Wire{ .c0 = wire[0], .c1 = wire[1], .c2 = wire[2] };
+    }
+};
+```
+
+We represent the gates as an enum:
 
 ```zig
 const Gate = enum {
-    band,
-    bor,
-    bxor,
+    band, bor, bxor,
 
-    fn from_string(gate_string: []const u8) Gate {
+    fn init(gate_string: []const u8) Gate {
         if (std.mem.eql(u8, gate_string, "AND")) return .band;
         if (std.mem.eql(u8, gate_string, "OR")) return .bor;
         if (std.mem.eql(u8, gate_string, "XOR")) return .bxor;
         unreachable;
     }
-
-    fn compute(gate: Gate, x: bool, y: bool) bool {
-        return switch (gate) {
-            .band => x and y,
-            .bor => x or y,
-            .bxor => x != y,
-        };
-    }
 };
 ```
 
-I used `bool` for the bit values instead of integers so instead of the bitwise operators we used logical operators.
+## Part One
 
-The wires are stored as `u24` instead of their string representation. A wire is a three character string. We can "concatenate" each character (a byte or 8 bits) into a larger 24-bit integer by shifting their bits:
+We have to find the **resulting number** after simulating the system of gates and wires. The output is stored in the wires that start with `z`.
 
-```zig
-fn wire_to_u24(wire: []const u8) u24 {
-    return (@as(u24, wire[0]) << 16) + (@as(u16, wire[1]) << 8) + wire[2];
-}
-```
+The expressions are essentially a directed graph with "layers", where each layer is composed of the expressions for a single step of the simulation. We can find the output by traversing each layer of this graph and calculating the values of the intermediary wires until we reach the output wires.
 
-This makes checking values of the wires a bit more inconvient but speeds up the solution a bit.
-
-Now for the simulation. This is a graph problem so you could use either BFS or DFS and both should work. Here I used a BFS approach but instead of storing the next nodes to visit in a queue, I just iterated over all of the expressions until all wire values have been filled:
+Here's the code:
 
 ```zig
 fn part1(self: *Self) !u64 {
     var z_count: usize = 0;
     for (self.expressions) |expression| {
-        if (expression[2] >> 16 == 'z') z_count += 1;
+        if (expression[2].c0 == 'z') z_count += 1;
     }
 
     var result: u64 = 0;
@@ -132,11 +124,9 @@ fn part1(self: *Self) !u64 {
             const value_second = self.wires.get(right) orelse continue;
             const computed = gate.compute(value_first, value_second);
 
-            if (output >> 16 == 'z') {
-                const index = ((output >> 8) - '0') * 10 + ((output & 0xff) - '0');
-                const bit: u64 = if (computed) 1 else 0;
-
-                result |= bit << @intCast(index);
+            if (output.c0 == 'z') {
+                const index = (output.c1 - '0') * 10 + (output.c2 - '0');
+                result |= @as(u64, @intFromBool(computed)) << @intCast(index);
                 z_count -= 1;
             }
 
@@ -147,122 +137,86 @@ fn part1(self: *Self) !u64 {
 }
 ```
 
-First we iterate over the expressions once to count the number of the `z` wires. Then we'll keep iterating over the expressions and compute the values of the intermediary and output wires and store it in the `wires` map. If we have computed the values of all of the `z` wires, return the result.
+We update the result number one bit at a time as we loop through the expressions instead of doing a final pass on the `wires` map at the end.
 
-## Part two
+We also defined a helper method on `Gate` to compute the result of an expression:
 
-Day 24 is the hardest day from the entire event in my opinion. It starts out as a deceptively simple simulation problem that evolved into a nightmare reverse engineering problem. After a brutal 23 days, I didn't have enough brain power to push through with part two.
-
-In part two it turns out four pairs of gates have been swapped. We need to find all swapped wires and sort them alphabetically. After scrolling Reddit I learned that this was a [ripple carry adder circuit](https://en.wikipedia.org/wiki/Adder_(electronics)#Ripple-carry_adder), or basically how to add two integers using bitwise operators.
-
-Here's an example-based explanation of how it works. We'll use the example expression `12 + 13`.
-
-This is how they look in binary:
-
+```zig
+const Gate = enum {
+    // ...
+    
+    fn compute(gate: Gate, x: bool, y: bool) bool {
+        return switch (gate) {
+            .band => x and y,
+            .bor => x or y,
+            .bxor => x != y,
+        };
+    }
+};
 ```
+
+## Part Two
+
+We have to find **eight swapped wires** in the system of gates and wires.
+
+It turns out the whole system is a [ripple-carry adder circuit](https://en.wikipedia.org/wiki/Adder_(electronics)#Ripple-carry_adder), a digital circuit that adds two numbers using just bitwise operations. The twist here is that the output is wrong because 4 pairs of wires have been swapped.
+
+To find the swapped wires, we first have to understand how a ripple-carry adder works, in particular, its components: a half adder (for the first bit) and multiple full adders (for the remaining bits).
+
+I'll use the expression $12 + 13$ as an example to illustrate.
+
+This is what they look like in binary:
+
+```plaintext
  1100
  1101
 ----- +
 11001
 ```
 
-We'll start with the first bit. There are three possible scenarios:
+First we'll look at the **half adder**. A half adder takes two input bits and produces a sum and a carry-out. There are three possible input combinations:
 
-1. Both input bits are off. The output bit is off. Nothing is carried over (the carry bit is off).
-    ```
-     0
-     0
-    -- +
-     0
-    ```
-2. One input bit is on and the other is off. The output bit is on and the carry bit is off. Note, order doesn't matter here.
-    ```
-     0
-     1
-    -- +
-     1
-    ```
-3. Both input bits are on. The output bit is off and the carry bit is on.
-    ```
-    1 <-- this is the carry bit
-     1
-     1
-    -- +
-     0
-    ```
+1. `0 + 0` -> sum = 0, carry-out = 0.
+2. `1 + 0` -> sum = 1, carry-out = 0. This is the same as `0 + 1`, order doesn't matter.
+3. `1 + 1` -> sum = 0, carry-out = 1.
 
-Just for the first bit (and also single bit additions), this is called a half adder. Based on the input bits, we can always know the value of the output and the carry bit. The rules are:
+From these, we can infer these rules:
 
-1. Output = A XOR B
-2. Carry = A AND B
+1. `sum(a, b) = a ^ b`.
+2. `carry(a, b) = a & b`.
 
-A and B are the input bits. I'll skip the explanation as to why these are the rules. If you look at the rules and stare at the examples from above, it'll make sense soon!
+Next, we'll look at the **full adder**. A full adder takes three inputs: two input bits and a carry-in bit. It produces a sum and a carry-out. There are six possible input combinations (the third bit is the carry-in):
 
-Then, we have the full adder. This is when at the start we already have a carry bit. Now, there are six possible scenarios:
+1. `0 + 0 + 0` -> sum = 0, carry-out = 0.
+2. `1 + 0 + 0` -> sum = 1, carry-out = 0.
+3. `1 + 1 + 0` -> sum = 0, carry-out = 1.
+4. `0 + 0 + 1` -> sum = 1, carry-out = 0.
+5. `1 + 0 + 1` -> sum = 0, carry-out = 1.
+6. `1 + 1 + 1` -> sum = 1, carry-out = 1.
 
-1. Carry bit is off and both input bits are off. Output bit and (the next) carry bit is off.
-    ```
-     0
-     0
-     0
-    -- +
-     0
-    ```
-2. Carry bit is off and one input bit is on and the other is off. Output bit is on and carry bit is off.
-    ```
-     0
-     0
-     1
-    -- +
-     1
-    ```
-3. Carry bit is off and both input bits are on. Output bit is off and the carry bit is on.
-    ```
-    10
-     1
-     1
-    -- +
-     0
-    ```
-4. Carry bit is on and both input bits are off. Output bit is on and the carry bit is off.
-    ```
-     1
-     0
-     0
-    -- +
-     1
-    ```
-5. Carry bit is on and one input bit is on and the other is off. Output bit is off and carry bit is on.
-    ```
-    11
-     0
-     1
-    -- +
-     0
-    ```
-6. Carry bit is off on both input bits are on. Output bit is on and the carry bit is on.
-    ```
-    11
-     1
-     1
-    -- +
-     0
-    ```
+From these, we can infer these rules:
 
-From these, we can infer the following rules:
+1. `sum(a, b, c) = a ^ b ^ c`.
+2. `carry(a, b, c) = (a & b) | ((a ^ b) ^ c)`
 
-1. Output = A XOR B XOR C
-2. Carry = (A AND B) OR (C ^ (A XOR B))
+We can use the rules for the half and full adders to create a rule to detect a swapped wire in an expression:
 
-C is the carry bit. In total, we now have four rules that must be true for a correct ripple carry adder circuit. To solve part two, we just have to find the eight expressions that violate any of these rules.
+1. If the output wire starts with `z`, the gate must be an XOR gate, except for `z45` which is actually the carry-out of the 43rd full adder, and must use an OR gate.
+2. If the output wire doesn't start with `z`, and the operands aren't `xNN` or `yNN`, the gate must be either AND or OR, never XOR.
 
-Well, the rules above are just for the wires that contain the values for the output and the carry bits. There are intermediary wires for the full adders. I couldn't figure out a set of rules that would work given the gate and the output of an expression. In the end, I copied the rules from [someone else's solution](https://github.com/maneatingape/advent-of-code-rust/blob/main/src/year2024/day24.rs):
+Unfortunately, just applying these rules only identifies 6 incorrect wires. To find the remaining two, we need a bit of "lookahead": we analyze not only the current gate, but how its output is used.
 
-1. **XOR** If inputs are `x` and `y` then output must be another XOR gate (except for inputs `x00` and `y00`) otherwise output must be `z`.
-2. **AND** Output must be an OR gate (except for inputs `x00` and `y00`).
-3. **OR** Output must be both AND and XOR gate, except for final carry which must output to `z45`.
+Unfortunately we can only get 6 wires from this approach. There are [several ways to get the other two](https://www.reddit.com/r/adventofcode/comments/1hla5ql/2024_day_24_part_2_a_guide_on_the_idea_behind_the/), but one elegant approach I found is to also check the expressions that uses the output of the current one.
 
-With this, we can now implement the solution:
+This approach come's from [@maneatingape's](https://github.com/maneatingape) [solution](https://github.com/maneatingape/advent-of-code-rust/blob/main/src/year2024/day24.rs). Instead of the previous rules, these are the rules we'll follow:
+
+1. **XOR**: If the inputs are `xNN` and `yNN` then output must be another XOR gate (except for inputs `x00` and `y00`). Otherwise, the output wire must be a `zNN`.
+2. **AND**: The output must be an OR gate (except for inputs `x00` and `y00`).
+3. **OR**: The output must be both AND and XOR gate, except for final carry which must output to `z45`.
+
+Now for the solution. We first create a set of wire-gate pairs. Then, we iterate through all expressions and validate each one using the above rules. If an expression violates a rule, we add its output wire to the results array. Finally, we sort the array and return it.
+
+Here's the code:
 
 ```zig
 fn part2(self: Self) ![8]u24 {
@@ -270,14 +224,14 @@ fn part2(self: Self) ![8]u24 {
     defer wire_gates.deinit();
 
     for (self.expressions, self.gates) |expression, gate| {
-        try wire_gates.put(.{ expression[0], @intFromEnum(gate) }, {});
-        try wire_gates.put(.{ expression[1], @intFromEnum(gate) }, {});
+        try wire_gates.put(.{ @bitCast(expression[0]), @intFromEnum(gate) }, {});
+        try wire_gates.put(.{ @bitCast(expression[1]), @intFromEnum(gate) }, {});
     }
 
-    var result: [8]u24 = undefined;
-    const x00 = 0x783030;
-    const z45 = 0x7a3435;
+    const x00 = Wire.init("x00");
+    const z45 = Wire.init("z45");
 
+    var result: [8]u24 = undefined;
     var i: usize = 0;
     for (self.expressions, self.gates) |expression, gate| {
         const left, const right, const output = expression;
@@ -285,31 +239,31 @@ fn part2(self: Self) ![8]u24 {
         switch (gate) {
             .band => {
                 if (left != x00 and right != x00 and
-                    !wire_gates.contains(.{ output, @intFromEnum(Gate.bor) }))
+                    !wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bor) }))
                 {
-                    result[i] = output;
+                    result[i] = output.to_big_endian_u24();
                     i += 1;
                 }
             },
             .bor => {
-                if (output >> 16 == 'z' and output != z45 or
-                    wire_gates.contains(.{ output, @intFromEnum(Gate.bor) }))
+                if (output.c0 == 'z' and output != z45 or
+                    wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bor) }))
                 {
-                    result[i] = output;
+                    result[i] = output.to_big_endian_u24();
                     i += 1;
                 }
             },
             .bxor => {
-                if (left >> 16 == 'x' or right >> 16 == 'x') {
+                if (left.c0 == 'x' or right.c0 == 'x') {
                     if (left != x00 and right != x00 and
-                        !wire_gates.contains(.{ output, @intFromEnum(Gate.bxor) }))
+                        !wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bxor) }))
                     {
-                        result[i] = output;
+                        result[i] = output.to_big_endian_u24();
                         i += 1;
                     }
                 } else {
-                    if (output >> 16 != 'z') {
-                        result[i] = output;
+                    if (output.c0 != 'z') {
+                        result[i] = output.to_big_endian_u24();
                         i += 1;
                     }
                 }
@@ -322,6 +276,25 @@ fn part2(self: Self) ![8]u24 {
 }
 ```
 
-This was just a Zig translation of @maneatingape's solution. I'm still frustrated I couldn't come up with this myself.
+Because packed structs can have different memory layouts depending on system endianness, we add a method to convert a `Wire` to the correct representation, which is big-endian in our case:
 
-## Benchmarks
+```zig
+const Wire = packed struct(u24) {
+    const endian = builtin.target.cpu.arch.endian();
+
+    // ...
+
+    fn to_big_endian_u24(wire: Wire) u24 {
+        if (endian == .big) return @bitCast(wire);
+        return (@as(u24, wire.c0) << 16) + (@as(u16, wire.c1) << 8) + wire.c2;
+    }
+};
+```
+
+## Benchmark
+
+All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
+
+| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
+| ----- | ----------- | ----------- | ------------ |
+|       |             |             |              |
