@@ -32,6 +32,7 @@ fn Day15(length: usize) type {
                     @memcpy(result.simulation2.map[i][(2 * j)..(2 * j + 2)], wide_tile);
 
                     if (c == '@') {
+                        result.simulation1.map[i][j] = '.';
                         result.simulation1.position = .{ @intCast(i), @intCast(j) };
                         result.simulation2.position = .{ @intCast(i), @intCast(j * 2) };
                     }

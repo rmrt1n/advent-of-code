@@ -230,26 +230,25 @@ Each bit in the upper four bits are used to store the directions. If a tile's di
     right bit ─┘ down bit
 ```
 
-This is the representation in big-endian systems. In little-endian systems (most modern hardware), the type bits and the direction bits will be in reversed order. We'll have to handle endianness explicitly in code. Here are some helper methods to get/set the direction bits:
+This is the representation in big-endian systems. In little-endian systems (most modern hardware), the type bits and the direction bits will be in reversed order. In our code we'll convert tiles into big endian representation first before doing bitwise operations on them. Here are some helper methods to get/set the direction bits:
 
 ```zig
 const Tile = packed struct(u8) {
     // ...
-    const endian = builtin.target.cpu.arch.endian();
-    
-    fn visit(tile: Tile, direction: Direction) Tile {
-        const mask: u8 = if (endian == .big) direction.mask() << 4 else direction.mask();
-        const int_tile = &@as(u8, @bitCast(tile));
 
-        var result = @as(Tile, @bitCast(int_tile.* | mask));
+    fn visit(tile: Tile, direction: Direction) Tile {
+        const int_tile = std.mem.nativeToBig(u8, @bitCast(tile));
+        const mask = direction.mask();
+
+        var result = @as(Tile, @bitCast(int_tile | mask));
         result.type = .visited;
         return result;
     }
 
     fn has_visited(tile: Tile, direction: Direction) bool {
+        const int_tile = std.mem.nativeToBig(u8, @bitCast(tile));
         const mask = direction.mask();
-        const int_tile = @as(u8, @bitCast(tile));
-        const bits = if (endian == .big) int_tile >> 4 else int_tile & 0xff;
+        const bits = int_tile & 0xff; // Get only the direction bits
         return bits & mask == mask;
     }
 };
@@ -260,12 +259,12 @@ const Tile = packed struct(u8) {
 We used [bit-masking](https://en.wikipedia.org/wiki/Mask_(computing)) here to get/set the bits instead of `switch` because it's [branchless](https://en.algorithmica.org/hpc/pipelining/branching/). This results in faster code but is a bit less readable than:
 
 ```zig
-fn has_visited(tile: Tile, direction: Direction) bool {
+fn has_visited(self: Tile, direction: Direction) bool {
     switch (direction) {
-        .up => return tile.up == 1,
-        .right => return tile.right == 1,
-        .down => return tile.down == 1,
-        .left => return tile.left == 1,
+        .up => return self.up == 1,
+        .right => return self.right == 1,
+        .down => return self.down == 1,
+        .left => return self.left == 1,
     }
 }
 ```

@@ -235,13 +235,13 @@ fn part2(self: Self) ![8]u24 {
     var i: usize = 0;
     for (self.expressions, self.gates) |expression, gate| {
         const left, const right, const output = expression;
-
+ 
         switch (gate) {
             .band => {
                 if (left != x00 and right != x00 and
                     !wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bor) }))
                 {
-                    result[i] = output.to_big_endian_u24();
+                    result[i] = output.to_u24();
                     i += 1;
                 }
             },
@@ -249,7 +249,7 @@ fn part2(self: Self) ![8]u24 {
                 if (output.c0 == 'z' and output != z45 or
                     wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bor) }))
                 {
-                    result[i] = output.to_big_endian_u24();
+                    result[i] = output.to_u24();
                     i += 1;
                 }
             },
@@ -258,12 +258,12 @@ fn part2(self: Self) ![8]u24 {
                     if (left != x00 and right != x00 and
                         !wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bxor) }))
                     {
-                        result[i] = output.to_big_endian_u24();
+                        result[i] = output.to_u24();
                         i += 1;
                     }
                 } else {
                     if (output.c0 != 'z') {
-                        result[i] = output.to_big_endian_u24();
+                        result[i] = output.to_u24();
                         i += 1;
                     }
                 }
@@ -280,13 +280,10 @@ Because packed structs can have different memory layouts depending on system end
 
 ```zig
 const Wire = packed struct(u24) {
-    const endian = builtin.target.cpu.arch.endian();
-
     // ...
 
-    fn to_big_endian_u24(wire: Wire) u24 {
-        if (endian == .big) return @bitCast(wire);
-        return (@as(u24, wire.c0) << 16) + (@as(u16, wire.c1) << 8) + wire.c2;
+    fn to_u24(wire: Wire) u24 {
+        return std.mem.nativeToBig(u24, @bitCast(wire));
     }
 };
 ```

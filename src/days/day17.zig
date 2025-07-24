@@ -147,6 +147,19 @@ fn Day17(length: usize) type {
     };
 }
 
+fn format_part1(allocator: std.mem.Allocator, answer: std.ArrayList(u3)) ![]const u8 {
+    const length = answer.items.len;
+    var buffer = try allocator.alloc(u8, length * 2 - 1);
+
+    for (answer.items[0..(length - 1)], 0..) |number, i| {
+        buffer[i * 2] = @as(u8, number) + '0';
+        buffer[i * 2 + 1] = ',';
+    }
+    buffer[buffer.len - 1] = @as(u8, answer.items[length - 1]) + '0';
+
+    return buffer;
+}
+
 pub const title = "Day 17: Chronospatial Computer";
 
 pub fn run(allocator: std.mem.Allocator, is_run: bool) ![3]u64 {
@@ -163,8 +176,11 @@ pub fn run(allocator: std.mem.Allocator, is_run: bool) ![3]u64 {
     const result2 = try puzzle.part2();
     const time2 = timer.read();
 
+    const result1_string = try format_part1(allocator, result1);
+    defer allocator.free(result1_string);
+
     if (is_run) {
-        std.debug.print("Part 1: {any}\nPart 2: {d}\n", .{ result1.items, result2 });
+        std.debug.print("Part 1: {s}\nPart 2: {d}\n", .{ result1_string, result2 });
     }
 
     return .{ time0, time1, time2 };

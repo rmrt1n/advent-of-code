@@ -142,6 +142,23 @@ fn Day23() type {
     };
 }
 
+fn format_part2(allocator: std.mem.Allocator, answer: []const u8) ![]const u8 {
+    const length = answer.len;
+    var buffer = try allocator.alloc(u8, length + length / 2 - 1);
+
+    var i: usize = 0;
+    var window = std.mem.window(u8, answer, 2, 2);
+    while (window.next()) |computer| : (i += 3) {
+        buffer[i] = computer[0];
+        buffer[i + 1] = computer[1];
+        if (i + 2 < buffer.len - 1) {
+            buffer[i + 2] = ',';
+        }
+    }
+
+    return buffer;
+}
+
 pub const title = "Day 23: LAN Party";
 
 pub fn run(allocator: std.mem.Allocator, is_run: bool) ![3]u64 {
@@ -157,8 +174,11 @@ pub fn run(allocator: std.mem.Allocator, is_run: bool) ![3]u64 {
     const result2 = try puzzle.part2(13);
     const time2 = timer.read();
 
+    const result2_string = try format_part2(allocator, result2);
+    defer allocator.free(result2_string);
+
     if (is_run) {
-        std.debug.print("Part 1: {d}\nPart 2: {d}\n", .{ result1, result2 });
+        std.debug.print("Part 1: {d}\nPart 2: {s}\n", .{ result1, result2_string });
     }
 
     return .{ time0, time1, time2 };

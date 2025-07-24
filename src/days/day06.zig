@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 
 fn Day06(comptime length: usize) type {
     return struct {
@@ -141,8 +140,6 @@ const Direction = enum {
 const Tile = packed struct(u8) {
     const TileType = enum(u4) { obstacle, path, visited, exit };
 
-    const endian = builtin.target.cpu.arch.endian();
-
     up: u1 = 0,
     right: u1 = 0,
     down: u1 = 0,
@@ -154,18 +151,18 @@ const Tile = packed struct(u8) {
     }
 
     fn visit(tile: Tile, direction: Direction) Tile {
-        const mask: u8 = if (endian == .big) direction.mask() << 4 else direction.mask();
-        const int_tile = &@as(u8, @bitCast(tile));
+        const int_tile = std.mem.nativeToBig(u8, @bitCast(tile));
+        const mask = direction.mask();
 
-        var result = @as(Tile, @bitCast(int_tile.* | mask));
+        var result = @as(Tile, @bitCast(int_tile | mask));
         result.type = .visited;
         return result;
     }
 
     fn has_visited(tile: Tile, direction: Direction) bool {
+        const int_tile = std.mem.nativeToBig(u8, @bitCast(tile));
         const mask = direction.mask();
-        const int_tile = @as(u8, @bitCast(tile));
-        const bits = if (endian == .big) int_tile >> 4 else int_tile & 0xff;
+        const bits = int_tile & 0xff; // Get only the direction bits
         return bits & mask == mask;
     }
 };

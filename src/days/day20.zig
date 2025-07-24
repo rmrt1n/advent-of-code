@@ -145,13 +145,13 @@ const sample_input =
 ;
 
 test "day 1 part 1" {
-    var x = Day20(15).init(sample_input, std.testing.allocator);
+    var x = Day20(15).init(sample_input);
     const result = x.count_cheats(2, 0);
     try std.testing.expectEqual(44, result);
 }
 
 test "day 2 part 2" {
-    var x = Day20(15).init(sample_input, std.testing.allocator);
+    var x = Day20(15).init(sample_input);
     const result = x.count_cheats(20, 50);
     try std.testing.expectEqual(285, result);
 }

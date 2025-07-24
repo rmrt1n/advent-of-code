@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 
 fn Day24(length: usize) type {
     return struct {
@@ -94,7 +93,7 @@ fn Day24(length: usize) type {
                         if (left != x00 and right != x00 and
                             !wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bor) }))
                         {
-                            result[i] = output.to_big_endian_u24();
+                            result[i] = output.to_u24();
                             i += 1;
                         }
                     },
@@ -102,7 +101,7 @@ fn Day24(length: usize) type {
                         if (output.c0 == 'z' and output != z45 or
                             wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bor) }))
                         {
-                            result[i] = output.to_big_endian_u24();
+                            result[i] = output.to_u24();
                             i += 1;
                         }
                     },
@@ -111,12 +110,12 @@ fn Day24(length: usize) type {
                             if (left != x00 and right != x00 and
                                 !wire_gates.contains(.{ @bitCast(output), @intFromEnum(Gate.bxor) }))
                             {
-                                result[i] = output.to_big_endian_u24();
+                                result[i] = output.to_u24();
                                 i += 1;
                             }
                         } else {
                             if (output.c0 != 'z') {
-                                result[i] = output.to_big_endian_u24();
+                                result[i] = output.to_u24();
                                 i += 1;
                             }
                         }
@@ -131,8 +130,6 @@ fn Day24(length: usize) type {
 }
 
 const Wire = packed struct(u24) {
-    const endian = builtin.target.cpu.arch.endian();
-
     c0: u8,
     c1: u8,
     c2: u8,
@@ -141,9 +138,8 @@ const Wire = packed struct(u24) {
         return Wire{ .c0 = wire[0], .c1 = wire[1], .c2 = wire[2] };
     }
 
-    fn to_big_endian_u24(wire: Wire) u24 {
-        if (endian == .big) return @bitCast(wire);
-        return (@as(u24, wire.c0) << 16) + (@as(u16, wire.c1) << 8) + wire.c2;
+    fn to_u24(wire: Wire) u24 {
+        return std.mem.nativeToBig(u24, @bitCast(wire));
     }
 };
 
@@ -168,6 +164,26 @@ const Gate = enum {
     }
 };
 
+fn format_part2(allocator: std.mem.Allocator, answer: [8]u24) ![]const u8 {
+    var buffer = try allocator.alloc(u8, 8 * 3 + 8 - 1);
+
+    var i: usize = 0;
+    for (answer) |reversed_wire| {
+        const wire: Wire = @bitCast(std.mem.bigToNative(u24, reversed_wire));
+        buffer[i] = wire.c0;
+        buffer[i + 1] = wire.c1;
+        buffer[i + 2] = wire.c2;
+
+        if (i + 3 < buffer.len - 1) {
+            buffer[i + 3] = ',';
+            i += 1;
+        }
+        i += 3;
+    }
+
+    return buffer;
+}
+
 pub const title = "Day 24: Crossed Wires";
 
 pub fn run(allocator: std.mem.Allocator, is_run: bool) ![3]u64 {
@@ -183,8 +199,11 @@ pub fn run(allocator: std.mem.Allocator, is_run: bool) ![3]u64 {
     const result2 = try puzzle.part2();
     const time2 = timer.read();
 
+    const result2_string = try format_part2(allocator, result2);
+    defer allocator.free(result2_string);
+
     if (is_run) {
-        std.debug.print("Part 1: {d}\nPart 2: {d}\n", .{ result1, result2 });
+        std.debug.print("Part 1: {d}\nPart 2: {s}\n", .{ result1, result2_string });
     }
     return .{ time0, time1, time2 };
 }
