@@ -32,6 +32,7 @@ fn Day20(comptime length: usize) type {
         const Self = @This();
 
         const path: u32 = std.math.maxInt(u32);
+        const obstacle: u32 = path - 1;
 
         map: [length][length]u32 = undefined,
         start: [2]i16 = undefined,
@@ -44,14 +45,12 @@ fn Day20(comptime length: usize) type {
             var lexer = std.mem.tokenizeScalar(u8, data, '\n');
             while (lexer.next()) |line| : (i += 1) {
                 for (line, 0..) |c, j| {
+                    result.map[i][j] = path;
                     switch (c) {
-                        '#' => result.map[i][j] = '#',
-                        '.' => result.map[i][j] = path,
+                        '.' => {},
+                        '#' => result.map[i][j] = obstacle,
                         'S' => result.start = .{ @intCast(i), @intCast(j) },
-                        'E' => {
-                            result.end = .{ @intCast(i), @intCast(j) };
-                            result.map[i][j] = path;
-                        },
+                        'E' => result.end = .{ @intCast(i), @intCast(j) },
                         else => unreachable,
                     }
                 }
@@ -64,7 +63,7 @@ fn Day20(comptime length: usize) type {
 ```
 
 > [!NOTE]
-> The path `.` tiles are parsed as `std.math.maxInt(u32)` instead of their original character. The reason for this will become apparent in part one.
+> The path `.` and obstacle `#` tiles are parsed as the two largest `u32` values. I'll explain why in part one.
 
 ## Part One
 
@@ -140,7 +139,7 @@ fn count_cheats(self: *Self, cheat_duration: i32, min_time_saved: u32) u64 {
 }
 ```
 
-While building the list of positions, we also mapped each position to the time it takes to reach it without cheats. We'll need this to calculate how much time is saved by cheating to a certain tile. Instead of using a hash map `std.AutoHashMap`, we'll mutate the map tiles directly. This is why the original path tiles are parsed as `std.math.maxInt(u32)`, so that we avoid conflicts—the `.` (ASCII value 46) collides with 46 picoseconds.
+While building the list of positions, we also mapped each position to the time it takes to reach it without cheats. We'll need this to calculate how much time is saved by cheating to a certain tile. Instead of using a hash map `std.AutoHashMap`, we'll mutate the map tiles directly. This is why the path and obstacle tiles are parsed the way they are: their original ASCII values (46 and 35) would conflict with 46 and 35 picoseconds.
 
 Next, we'll iterate over every tile in the race track. For each tile, we'll find every cheat end tile in the diamond window. If the cheat saves at least 100 picoseconds, we'll increment the result:
 
@@ -165,7 +164,7 @@ fn count_cheats(self: *Self, cheat_duration: i32, min_time_saved: u32) u64 {
                 if (manhattan_distance > cheat_duration) continue;
 
                 const end_tile = self.get_tile_at(.{ @intCast(x), @intCast(y) });
-                if (end_tile != '#') {
+                if (end_tile != obstacle) {
                     const peek_time = end_tile;
 
                     // No use cheating here...
@@ -242,7 +241,7 @@ fn count_cheats(self: *Self, cheat_duration: i32, min_time_saved: u32) u64 {
                 if (manhattan_distance > cheat_duration) continue;
 
                 const end_tile = self.get_tile_at(.{ @intCast(x), @intCast(y) });
-                if (end_tile != '#') {
+                if (end_tile != obstacle) {
                     const peek_time = end_tile;
 
                     // No use cheating here...

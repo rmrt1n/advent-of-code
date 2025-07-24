@@ -6,6 +6,7 @@ fn Day20(comptime length: usize) type {
 
         const directions = [_]@Vector(2, i8){ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
         const path: u32 = std.math.maxInt(u32);
+        const obstacle: u32 = path - 1;
 
         map: [length][length]u32 = undefined,
         start: [2]i16 = undefined,
@@ -18,14 +19,12 @@ fn Day20(comptime length: usize) type {
             var lexer = std.mem.tokenizeScalar(u8, data, '\n');
             while (lexer.next()) |line| : (i += 1) {
                 for (line, 0..) |c, j| {
+                    result.map[i][j] = path;
                     switch (c) {
-                        '#' => result.map[i][j] = '#',
-                        '.' => result.map[i][j] = path,
+                        '.' => {},
+                        '#' => result.map[i][j] = obstacle,
                         'S' => result.start = .{ @intCast(i), @intCast(j) },
-                        'E' => {
-                            result.end = .{ @intCast(i), @intCast(j) };
-                            result.map[i][j] = path;
-                        },
+                        'E' => result.end = .{ @intCast(i), @intCast(j) },
                         else => unreachable,
                     }
                 }
@@ -78,7 +77,7 @@ fn Day20(comptime length: usize) type {
                         if (manhattan_distance > cheat_duration) continue;
 
                         const end_tile = self.get_tile_at(.{ @intCast(x), @intCast(y) });
-                        if (end_tile != '#') {
+                        if (end_tile != obstacle) {
                             const peek_time = end_tile;
 
                             // No use cheating here...
@@ -146,7 +145,7 @@ const sample_input =
 
 test "day 1 part 1" {
     var x = Day20(15).init(sample_input);
-    const result = x.count_cheats(2, 0);
+    const result = x.count_cheats(2, 1);
     try std.testing.expectEqual(44, result);
 }
 

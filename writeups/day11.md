@@ -40,7 +40,7 @@ fn Day11(length: usize) type {
 We need to count the number of stones after **25 blinks**. Every time we blink, the stones change following these rules:
 
 1. If the stone is a `0`, it becomes a `1`.
-2. If the stone has an even number of digits, it will be split into two stones. E.g., `1234` will be split into `12` and `34`. Leading zeros are ignored.
+2. If the stone has an even number of digits, it will be split into two stones. E.g. `1234` will be split into `12` and `34`. Leading zeros are ignored.
 3. If rules 1 and 2 didn't apply, multiply the stone by `2024`.
 
 We could implement this naively by simulating the stones using a list, but this quickly becomes inefficient, especially when we get to higher blink counts. The puzzle description says that the order of the stones must be preserved, but it doesn't actually matter for counting stones.
