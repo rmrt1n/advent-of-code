@@ -47,6 +47,8 @@ fn Day23() type {
                     if (self.lengths[second] == 0) continue;
 
                     for (self.graph[first][i..]) |third| {
+                        if (self.lengths[third] == 0) continue;
+
                         for (self.graph[second]) |neighbor| {
                             if (neighbor == third) {
                                 var set = [3]u16{ @as(u16, @intCast(first)), second, third };
