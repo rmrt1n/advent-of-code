@@ -2,7 +2,7 @@
 
 [Full solution](../src/days/day01.zig).
 
-## Puzzle input
+## Puzzle Input
 
 Today's input is a two-column list of **location IDs**:
 
