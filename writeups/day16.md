@@ -278,6 +278,9 @@ Not the cleanest solution, but at least it works.
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs)   | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | -----------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 153.9        | 49.2             | 12.6             | 46.9              |
+| Part 1        | 15,397.6     | 4,676.7          | 2,480.8          | 2,665.8           |
+| Part 2        | 48,751.2     | 15,408.5         | 9,010.7          | 9,338.2           |
+| **Total**     | **64,302.7** | **20,134.4**     | **11,504.1**     | **12,050.9**      |

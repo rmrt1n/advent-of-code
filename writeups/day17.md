@@ -261,6 +261,9 @@ fn reset(self: *Self) void {
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs) | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ---------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 1.6        | 0.1              | 0.1              | 0.2               |
+| Part 1        | 1.2        | 0.2              | 0.2              | 0.3               |
+| Part 2        | 290.5      | 42.0             | 44.5             | 69.1              |
+| **Total**     | **293.3**  | **42.3**         | **44.8**         | **69.6**          |

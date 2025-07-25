@@ -118,6 +118,9 @@ Another surprisingly easy part two!
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs)    | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ------------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 127.0         | 11.4             | 10.7             | 21.8              |
+| Part 1        | 207,814.8     | 12,983.8         | 11,890.8         | 25,477.8          |
+| Part 2        | 207,684.8     | 12,979.9         | 11,908.7         | 25,483.3          |
+| **Total**     | **415,626.6** | **25,975.1**     | **23,810.2**     | **50,982.9**      |

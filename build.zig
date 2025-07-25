@@ -14,22 +14,42 @@ pub fn build(b: *std.Build) void {
         const day_zig_file = b.path(b.fmt("src/days/day{d:0>2}.zig", .{day}));
 
         const run_exe = b.addExecutable(.{
-            .name = b.fmt("run-day{d:0>2}", .{day}),
+            .name = b.fmt("run-day{d:0>2}-Debug", .{day}),
             .root_source_file = b.path("src/run.zig"),
             .target = target,
-            .optimize = optimize,
+            .optimize = optimize, // Defaults to Debug
         });
         run_exe.root_module.addAnonymousImport("day", .{ .root_source_file = day_zig_file });
         b.installArtifact(run_exe);
 
         const bench_exe = b.addExecutable(.{
-            .name = b.fmt("bench-day{d:0>2}", .{day}),
+            .name = b.fmt("bench-day{d:0>2}-Debug", .{day}),
             .root_source_file = b.path("src/bench.zig"),
             .target = target,
-            .optimize = optimize,
+            .optimize = optimize, // Defaults to Debug
         });
         bench_exe.root_module.addAnonymousImport("day", .{ .root_source_file = day_zig_file });
         b.installArtifact(bench_exe);
+
+        for ([_]std.builtin.OptimizeMode{ .ReleaseSafe, .ReleaseFast, .ReleaseSmall }) |other_optimize| {
+            const other_run_exe = b.addExecutable(.{
+                .name = b.fmt("run-day{d:0>2}-{s}", .{ day, @tagName(other_optimize) }),
+                .root_source_file = b.path("src/run.zig"),
+                .target = target,
+                .optimize = other_optimize,
+            });
+            other_run_exe.root_module.addAnonymousImport("day", .{ .root_source_file = day_zig_file });
+            b.installArtifact(other_run_exe);
+
+            const other_bench_exe = b.addExecutable(.{
+                .name = b.fmt("bench-day{d:0>2}-{s}", .{ day, @tagName(other_optimize) }),
+                .root_source_file = b.path("src/bench.zig"),
+                .target = target,
+                .optimize = other_optimize,
+            });
+            other_bench_exe.root_module.addAnonymousImport("day", .{ .root_source_file = day_zig_file });
+            b.installArtifact(other_bench_exe);
+        }
 
         const unit_test = b.addTest(.{ .root_source_file = day_zig_file, .target = target });
 

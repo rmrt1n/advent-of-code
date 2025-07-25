@@ -292,6 +292,9 @@ const Wire = packed struct(u24) {
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs)  | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ----------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 79.3        | 8.4              | 5.0              | 10.4              |
+| Part 1        | 1,615.4     | 91.7             | 41.3             | 204.6             |
+| Part 2        | 262.1       | 16.8             | 14.3             | 23.2              |
+| **Total**     | **1,956.9** | **116.9**        | **60.7**         | **238.1**         |

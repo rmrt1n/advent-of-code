@@ -143,6 +143,9 @@ We slice the array before passing it to `is_valid_report`, so it doesn't matter 
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs) | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ---------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 598.2      | 55.4             | 42.9             | 59.2              |
+| Part 1        | 33.8       | 4.5              | 0.0              | 3.3               |
+| Part 2        | 91.2       | 15.5             | 11.5             | 14.4              |
+| **Total**     | **723.2**  | **75.4**         | **54.4**         | **76.8**          |

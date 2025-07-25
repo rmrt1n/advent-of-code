@@ -214,6 +214,9 @@ fn part2(self: Self, comptime max_clique_size: usize) ![]const u8 {
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs) | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ---------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 143.4      | 16.6             | 13.6             | 11.2              |
+| Part 1        | 523.9      | 25.3             | 22.0             | 42.8              |
+| Part 2        | 11.4       | 2.6              | 2.5              | 2.6               |
+| **Total**     | **678.7**  | **44.5**         | **38.2**         | **56.6**          |

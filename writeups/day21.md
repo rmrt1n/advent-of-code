@@ -230,6 +230,9 @@ This makes three short part twos in a row!
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs) | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ---------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 0.7        | 0.1              | 0.0              | 0.1               |
+| Part 1        | 41.4       | 2.7              | 1.7              | 2.1               |
+| Part 2        | 566.2      | 33.0             | 22.4             | 27.9              |
+| **Total**     | **608.2**  | **35.7**         | **24.2**         | **30.1**          |

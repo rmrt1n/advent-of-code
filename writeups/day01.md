@@ -86,7 +86,7 @@ fn part2(self: Self) u64 {
 }
 ```
 
-We allocated space for 100,000 entries because the location IDs in the puzzle input are all five-digit integers. We're wasting a tiny bit of space here as there are only 90,000 five digit numbers (from 10,000 to 99,999), but it lets us index directly using the location ID and keeps the code simpler.
+We allocated space for 100,000 entries because the location IDs in the puzzle input are all five-digit integers. We're wasting a tiny bit of space here as there are only 90,000 five-digit numbers (from 10,000 to 99,999), but it lets us index directly using the location ID and keeps the code simpler.
 
 > [!TIP]
 > Whenever possible, prefer static allocation (allocating on the stack) over dynamic allocation (allocating on the heap). Static allocation doesn't have allocator overhead, has better [cache locality](https://stackoverflow.com/questions/12065774/why-does-cache-locality-matter-for-array-performance#12065801), and keeps memory usage predictable.
@@ -95,6 +95,9 @@ We allocated space for 100,000 entries because the location IDs in the puzzle in
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs) | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ---------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 361.4      | 24.5             | 23.5             | 30.1              |
+| Part 1        | 256.9      | 18.5             | 15.5             | 17.8              |
+| Part 2        | 8.1        | 2.9              | 2.8              | 2.6               |
+| **Total**     | **626.4**  | **46.0**         | **41.8**         | **50.6**          |

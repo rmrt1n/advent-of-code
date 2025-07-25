@@ -206,6 +206,9 @@ fn part2(self: Self) !u64 {
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs)   | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | -----------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 1.0          | 0.1              | 0.1              | 0.1               |
+| Part 1        | 933.6        | 47.8             | 43.8             | 68.2              |
+| Part 2        | 32,657.6     | 2,548.1          | 2,115.2          | 2,797.4           |
+| **Total**     | **33,592.2** | **2,596.1**      | **2,159.1**      | **2,865.7**       |

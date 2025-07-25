@@ -280,10 +280,16 @@ fn part2(self: Self) !u64 {
 }
 ```
 
+> [!TIP]
+> Memory allocators also use a similar concept called a [free list](https://en.wikipedia.org/wiki/Free_list) that keeps track of free blocks of memory that can be reused.
+
 ## Benchmark
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs)  | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ----------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 49.1        | 6.8              | 0.8              | 6.2               |
+| Part 1        | 125.1       | 25.4             | 12.9             | 15.6              |
+| Part 2        | 1,434.8     | 234.3            | 137.9            | 149.0             |
+| **Total**     | **1,609.1** | **266.5**        | **151.7**        | **170.8**         |

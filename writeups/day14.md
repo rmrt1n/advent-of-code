@@ -116,13 +116,16 @@ fn part2(self: Self) u64 {
 }
 ```
 
-> [!NOTE]
+> [!TIP]
 > The search space is bounded. After `self.map_size[0] * self.map_size[1]` seconds, the robot positions start to repeat.
 
 ## Benchmark
 
 All benchmarks were performed on an [Apple M3 Pro](https://en.wikipedia.org/wiki/Apple_M3) with times in microseconds (µs).
 
-| Debug | ReleaseSafe | ReleaseFast | ReleaseSmall |
-| ----- | ----------- | ----------- | ------------ |
-|       |             |             |              |
+| Part/Optimise | Debug (µs)    | ReleaseSafe (µs) | ReleaseFast (µs) | ReleaseSmall (µs) |
+|-------------- | ------------: | ---------------: | ---------------: | ----------------: |
+| Parsing       | 247.0         | 15.2             | 13.7             | 39.1              |
+| Part 1        | 9.9           | 2.0              | 0.0              | 0.1               |
+| Part 2        | 114,785.9     | 20,863.8         | 0.0              | 1,358.3           |
+| **Total**     | **115,042.7** | **20,881.1**     | **13.7**         | **1,397.5**       |
