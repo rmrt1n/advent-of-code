@@ -4,6 +4,8 @@ This repo contains my solutions for [Advent of Code](https://adventofcode.com). 
 
 So far I've only done 2024, in Zig. I might do other years in other languages later, or I might not.
 
+Also see the accompanying [blog post](https://ryanmartin.me/articles/aoc2024-zig).
+
 ## Solutions
 
 Each day links to the source code and the accompanying write-up.
@@ -216,6 +218,10 @@ To make things a little more interesting, I set a few constraints and rules for 
 To run the solutions, you'll first need to place your input files in the `src/days/data/` directory with the format `dayXX.txt` (add leading zeros for days 1-9). This project uses the [Zig build system](https://ziglang.org/learn/build-system/) to run the commands.
 
 Below are a list of the available commands. For the run and bench steps, you can also pass the optimize mode with the `-Doptimize` flag.
+
+### Building
+
+- `zig build` - Builds all of the binaries. This is useful if you just want to compile without running the programs.
 
 ### Running
 
