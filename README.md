@@ -199,18 +199,18 @@ To make things a little more interesting, I set a few constraints and rules for 
     By "readable", I mean the code should be straightforward and easy to follow. No unnecessary abstractions. I should be able to come back to the code months later and still understand (most of) it.
 2. **Solutions must be a single file**.
     No external dependencies. No shared utilities module. Everything needed to solve the puzzle should be visible in that one solution file.
-3. **The total runtime of all solutions must be under one second**.[^2]
-    I want to improve my performance engineering.
-4. **Both parts of the puzzle should be solved separately**.
-    This means: (1) no solving both parts simultaneously, and (2) no doing extra work in part one that make part two faster. This was to get a clear idea of how long each part takes on its own.
+3. **The total runtime must be under one second**.
+    All solutions when run sequentially should finish in under one second. I want to improve my performance engineering skills.
+4. **Parts should be solved separately**.
+    This means: (1) no solving both parts simultaneously, and (2) no doing extra work in part one that make part two faster. The aim of this is to get a clear idea of how long each part takes on its own.
 5. **No concurrency or parallelism**.
     Solutions must run sequentially on a single thread. This keeps the focus on the efficiency of the algorithm. I can't speed up slow solutions by using multiple CPU cores.
 6. **No ChatGPT. No Claude. No AI help**.
     I want to train myself, not the LLM. I can look at other people's solutions, but only after I have given my best effort at solving the problem.
 7. **Follow the constraints of the input file**.
-    The solution doesn't have to work for all possible scenarios, but it should work for all AoC inputs. E.g., if the input file only contains 8-bit unsigned integers, the solution doesn't have to handle cases with larger integer types. 
+    The solution doesn't have to work for all possible scenarios, but it should work for all other inputs; if the input file only contains 8-bit unsigned integers, it doesn't have to handle larger integer types.
 8. **Hardcoding is allowed**.
-    E.g. size of the input, number of rows and columns, etc. The code doesn't have to parse the input at runtime since it's known at compile-time. We can embed the input directly into the program using Zig's `@embedFile`.
+    For example: size of the input, number of rows and columns, etc. Since the input is known at compile-time, we can skip runtime parsing and just embed it into the program using Zig's `@embedFile`.
 
 
 ## Local development setup
